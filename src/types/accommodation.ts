@@ -7,5 +7,4 @@ export interface AccommodationInfo {
   bookingReference?: string;
   contactNumber?: string;
   notes?: string;
-  images?: string[];
 }

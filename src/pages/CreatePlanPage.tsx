@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { usePlanStore } from '@/stores/usePlanStore'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { planRepository } from '@/data'
+import { checkAccessCodeExists, ApiError } from '@/api'
 
 export function CreatePlanPage() {
   const navigate = useNavigate()
@@ -27,9 +27,13 @@ export function CreatePlanPage() {
     if (!accessCode.trim()) {
       newErrors.accessCode = '입장번호를 입력해주세요.'
     } else {
-      const exists = await planRepository.planExistsByAccessCode(accessCode.trim())
-      if (exists) {
-        newErrors.accessCode = '이미 사용 중인 입장번호입니다.'
+      try {
+        const exists = await checkAccessCodeExists(accessCode.trim())
+        if (exists) {
+          newErrors.accessCode = '이미 사용 중인 입장번호입니다.'
+        }
+      } catch {
+        newErrors.accessCode = '입장번호 확인에 실패했습니다.'
       }
     }
 
@@ -66,17 +70,26 @@ export function CreatePlanPage() {
       return
     }
 
-    const plan = await createPlan({
-      accessCode: accessCode.trim(),
-      password,
-      title: title.trim(),
-      description: description.trim(),
-      startDate,
-      endDate,
-    })
+    try {
+      const plan = await createPlan({
+        accessCode: accessCode.trim(),
+        password,
+        title: title.trim(),
+        description: description.trim(),
+        startDate,
+        endDate,
+      })
 
-    await authenticate(plan.id, password)
-    navigate(`/plan/${plan.id}`, { replace: true })
+      await authenticate(plan.id, password)
+      navigate(`/plan/${plan.id}`, { replace: true })
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'DUPLICATE_ACCESS_CODE') {
+        setErrors({ accessCode: '이미 사용 중인 입장번호입니다.' })
+      } else {
+        setErrors({ accessCode: '서버 오류가 발생했습니다. 다시 시도해주세요.' })
+      }
+      setIsSubmitting(false)
+    }
   }
 
   return (

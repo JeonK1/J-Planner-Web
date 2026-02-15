@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { planRepository } from '@/data'
+import { authenticatePlan } from '@/api'
 
 interface AuthState {
   authenticatedPlanIds: Set<string>;
@@ -15,7 +15,7 @@ export const useAuthStore = create<AuthState & AuthActions>()((set, get) => ({
   authenticatedPlanIds: new Set(),
 
   authenticate: async (planId: string, password: string) => {
-    const isValid = await planRepository.verifyPassword(planId, password)
+    const isValid = await authenticatePlan(planId, password)
     if (isValid) {
       set((state) => ({
         authenticatedPlanIds: new Set(state.authenticatedPlanIds).add(planId),

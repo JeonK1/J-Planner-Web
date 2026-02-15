@@ -1,9 +1,3 @@
-import { nanoid } from 'nanoid'
-
-export function generateId(): string {
-  return nanoid()
-}
-
 export function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleDateString('ko-KR', {

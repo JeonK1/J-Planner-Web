@@ -8,5 +8,4 @@ export interface FlightInfo {
   arrivalTime: string;
   bookingReference?: string;
   notes?: string;
-  images?: string[];
 }

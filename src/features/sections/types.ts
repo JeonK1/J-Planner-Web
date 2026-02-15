@@ -1,13 +1,14 @@
 import type { ComponentType } from 'react'
-import type { SectionType, SectionData } from '@/types'
+import type { SectionType, PlanSection } from '@/types'
+import type { UpdateSectionInput } from '@/api'
 
 export interface SectionDisplayProps {
-  data: SectionData;
+  section: PlanSection;
 }
 
 export interface SectionFormProps {
-  data: SectionData;
-  onChange: (data: SectionData) => void;
+  section: PlanSection;
+  onSave: (input: UpdateSectionInput) => Promise<void>;
 }
 
 export interface SectionRenderer {

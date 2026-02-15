@@ -1,0 +1,43 @@
+export interface ApiTravelPlan {
+  id: number;
+  accessCode: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  sections: ApiPlanSection[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiPlanSection {
+  id: number;
+  title: string;
+  sectionType: 'FLIGHT' | 'ACCOMMODATION';
+  displayOrder: number;
+  flightInfo: ApiFlightInfo | null;
+  accommodationInfo: ApiAccommodationInfo | null;
+}
+
+export interface ApiFlightInfo {
+  id: number;
+  airline: string;
+  flightNumber: string;
+  departureAirport: string;
+  arrivalAirport: string;
+  departureTime: string;
+  arrivalTime: string;
+  bookingReference: string | null;
+  notes: string | null;
+}
+
+export interface ApiAccommodationInfo {
+  id: number;
+  name: string;
+  address: string;
+  checkIn: string;
+  checkOut: string;
+  bookingReference: string | null;
+  contactNumber: string | null;
+  notes: string | null;
+}

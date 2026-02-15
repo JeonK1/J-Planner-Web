@@ -1,16 +1,15 @@
 import { create } from 'zustand'
-import type { TravelPlan, SectionData } from '@/types'
-import { planRepository } from '@/data'
-import { generateId } from '@/lib/utils'
-
-interface CreatePlanInput {
-  accessCode: string;
-  password: string;
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-}
+import type { TravelPlan, SectionType } from '@/types'
+import {
+  fetchPlanByAccessCode,
+  fetchPlan,
+  createPlan as apiCreatePlan,
+  updatePlan,
+  addSection as apiAddSection,
+  updateSection as apiUpdateSection,
+  deleteSection as apiDeleteSection,
+} from '@/api'
+import type { CreatePlanInput, UpdateSectionInput } from '@/api'
 
 interface PlanState {
   currentPlan: TravelPlan | null;
@@ -23,7 +22,9 @@ interface PlanActions {
   loadPlan: (planId: string) => Promise<TravelPlan | null>;
   createPlan: (input: CreatePlanInput) => Promise<TravelPlan>;
   updatePlanInfo: (updates: Partial<Pick<TravelPlan, 'title' | 'description' | 'startDate' | 'endDate'>>) => Promise<void>;
-  updateSection: (sectionId: string, data: SectionData) => Promise<void>;
+  addSection: (type: SectionType, title: string) => Promise<void>;
+  updateSection: (sectionId: string, input: UpdateSectionInput) => Promise<void>;
+  removeSection: (sectionId: string) => Promise<void>;
   clearPlan: () => void;
 }
 
@@ -34,56 +35,38 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
 
   loadPlanByAccessCode: async (accessCode: string) => {
     set({ isLoading: true, error: null })
-    const plan = await planRepository.getPlanByAccessCode(accessCode)
-    if (plan) {
-      set({ currentPlan: plan, isLoading: false })
-    } else {
-      set({ error: '존재하지 않는 입장번호입니다.', isLoading: false })
+    try {
+      const plan = await fetchPlanByAccessCode(accessCode)
+      if (plan) {
+        set({ currentPlan: plan, isLoading: false })
+      } else {
+        set({ error: '존재하지 않는 입장번호입니다.', isLoading: false })
+      }
+      return plan
+    } catch {
+      set({ error: '서버와 통신 중 오류가 발생했습니다.', isLoading: false })
+      return null
     }
-    return plan
   },
 
   loadPlan: async (planId: string) => {
     set({ isLoading: true, error: null })
-    const plan = await planRepository.getPlan(planId)
-    if (plan) {
-      set({ currentPlan: plan, isLoading: false })
-    } else {
-      set({ error: '존재하지 않는 플랜입니다.', isLoading: false })
+    try {
+      const plan = await fetchPlan(planId)
+      if (plan) {
+        set({ currentPlan: plan, isLoading: false })
+      } else {
+        set({ error: '존재하지 않는 플랜입니다.', isLoading: false })
+      }
+      return plan
+    } catch {
+      set({ error: '서버와 통신 중 오류가 발생했습니다.', isLoading: false })
+      return null
     }
-    return plan
   },
 
   createPlan: async (input: CreatePlanInput) => {
-    const now = new Date().toISOString()
-    const plan: TravelPlan = {
-      id: generateId(),
-      accessCode: input.accessCode,
-      password: input.password,
-      title: input.title,
-      description: input.description,
-      startDate: input.startDate,
-      endDate: input.endDate,
-      sections: [
-        {
-          id: generateId(),
-          type: 'flight',
-          title: '비행기정보',
-          order: 0,
-          data: { type: 'flight', flights: [] },
-        },
-        {
-          id: generateId(),
-          type: 'accommodation',
-          title: '숙소정보',
-          order: 1,
-          data: { type: 'accommodation', accommodations: [] },
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    }
-    await planRepository.savePlan(plan)
+    const plan = await apiCreatePlan(input)
     set({ currentPlan: plan })
     return plan
   },
@@ -92,28 +75,52 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     const { currentPlan } = get()
     if (!currentPlan) return
 
-    const updatedPlan = {
-      ...currentPlan,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    }
-    await planRepository.savePlan(updatedPlan)
+    const updatedPlan = await updatePlan(currentPlan.id, {
+      title: updates.title ?? currentPlan.title,
+      description: updates.description ?? currentPlan.description,
+      startDate: updates.startDate ?? currentPlan.startDate,
+      endDate: updates.endDate ?? currentPlan.endDate,
+    })
     set({ currentPlan: updatedPlan })
   },
 
-  updateSection: async (sectionId: string, data: SectionData) => {
+  addSection: async (type: SectionType, title: string) => {
     const { currentPlan } = get()
     if (!currentPlan) return
 
-    await planRepository.updateSection(currentPlan.id, sectionId, data)
-
+    const newSection = await apiAddSection(currentPlan.id, title, type)
     set({
       currentPlan: {
         ...currentPlan,
-        updatedAt: new Date().toISOString(),
+        sections: [...currentPlan.sections, newSection],
+      },
+    })
+  },
+
+  updateSection: async (sectionId: string, input: UpdateSectionInput) => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const updatedSection = await apiUpdateSection(currentPlan.id, sectionId, input)
+    set({
+      currentPlan: {
+        ...currentPlan,
         sections: currentPlan.sections.map((s) =>
-          s.id === sectionId ? { ...s, data } : s,
+          s.id === sectionId ? updatedSection : s,
         ),
+      },
+    })
+  },
+
+  removeSection: async (sectionId: string) => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    await apiDeleteSection(currentPlan.id, sectionId)
+    set({
+      currentPlan: {
+        ...currentPlan,
+        sections: currentPlan.sections.filter((s) => s.id !== sectionId),
       },
     })
   },
