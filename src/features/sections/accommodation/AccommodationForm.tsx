@@ -2,6 +2,7 @@ import type { SectionFormProps } from '../types'
 import type { AccommodationSectionData, AccommodationInfo } from '@/types'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { ImageUploader } from '@/components/ui/ImageUploader'
 import { generateId } from '@/lib/utils'
 
 export function AccommodationForm({ data, onChange }: SectionFormProps) {
@@ -100,6 +101,12 @@ export function AccommodationForm({ data, onChange }: SectionFormProps) {
               onChange={(e) => updateAccommodation(acc.id, { notes: e.target.value })}
               placeholder="참고 사항"
               className="sm:col-span-2"
+            />
+          </div>
+          <div className="mt-3">
+            <ImageUploader
+              images={acc.images ?? []}
+              onChange={(images) => updateAccommodation(acc.id, { images })}
             />
           </div>
         </div>

@@ -1,6 +1,7 @@
 import type { SectionDisplayProps } from '../types'
 import type { FlightSectionData } from '@/types'
 import { formatDateTime } from '@/lib/utils'
+import { ImageGallery } from '@/components/ui/ImageGallery'
 
 export function FlightDisplay({ data }: SectionDisplayProps) {
   const flightData = data as FlightSectionData
@@ -42,6 +43,9 @@ export function FlightDisplay({ data }: SectionDisplayProps) {
               )}
               {flight.notes && <span>{flight.notes}</span>}
             </div>
+          )}
+          {flight.images && flight.images.length > 0 && (
+            <ImageGallery images={flight.images} />
           )}
         </div>
       ))}

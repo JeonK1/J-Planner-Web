@@ -2,6 +2,7 @@ import type { SectionFormProps } from '../types'
 import type { FlightSectionData, FlightInfo } from '@/types'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { ImageUploader } from '@/components/ui/ImageUploader'
 import { generateId } from '@/lib/utils'
 
 export function FlightForm({ data, onChange }: SectionFormProps) {
@@ -107,6 +108,12 @@ export function FlightForm({ data, onChange }: SectionFormProps) {
               value={flight.notes ?? ''}
               onChange={(e) => updateFlight(flight.id, { notes: e.target.value })}
               placeholder="참고 사항"
+            />
+          </div>
+          <div className="mt-3">
+            <ImageUploader
+              images={flight.images ?? []}
+              onChange={(images) => updateFlight(flight.id, { images })}
             />
           </div>
         </div>

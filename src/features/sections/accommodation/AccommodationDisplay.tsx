@@ -1,6 +1,7 @@
 import type { SectionDisplayProps } from '../types'
 import type { AccommodationSectionData } from '@/types'
 import { formatDate } from '@/lib/utils'
+import { ImageGallery } from '@/components/ui/ImageGallery'
 
 export function AccommodationDisplay({ data }: SectionDisplayProps) {
   const accommodationData = data as AccommodationSectionData
@@ -35,6 +36,9 @@ export function AccommodationDisplay({ data }: SectionDisplayProps) {
               )}
               {acc.notes && <span>{acc.notes}</span>}
             </div>
+          )}
+          {acc.images && acc.images.length > 0 && (
+            <ImageGallery images={acc.images} />
           )}
         </div>
       ))}
