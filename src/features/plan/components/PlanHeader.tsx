@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { TravelPlan } from '@/types'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { formatDate } from '@/lib/utils'
 import { usePlanStore } from '@/stores/usePlanStore'
 
@@ -24,6 +25,7 @@ export function PlanHeader({
   const [startDate, setStartDate] = useState(plan.startDate)
   const [endDate, setEndDate] = useState(plan.endDate)
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setTitle(plan.title)
@@ -34,12 +36,24 @@ export function PlanHeader({
 
   const handleSave = async () => {
     setIsSaving(true)
-    await updatePlanInfo({ title, description, startDate, endDate })
+    setError(null)
+    try {
+      await updatePlanInfo({ title, description, startDate, endDate })
+    } catch {
+      setError('저장에 실패했습니다. 다시 시도해주세요.')
+    }
     setIsSaving(false)
   }
 
+  const dismissError = useCallback(() => setError(null), [])
+
   return (
     <div className="mb-6">
+      {error && (
+        <div className="mb-4">
+          <ErrorAlert message={error} onDismiss={dismissError} autoHideMs={5000} />
+        </div>
+      )}
       <div className="flex items-start justify-between">
         {isEditMode ? (
           <div className="flex flex-1 flex-col gap-3 mr-4">

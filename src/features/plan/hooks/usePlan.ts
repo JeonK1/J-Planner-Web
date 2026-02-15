@@ -7,6 +7,7 @@ export function usePlan() {
   const navigate = useNavigate()
   const currentPlan = usePlanStore((s) => s.currentPlan)
   const isLoading = usePlanStore((s) => s.isLoading)
+  const error = usePlanStore((s) => s.error)
   const loadPlan = usePlanStore((s) => s.loadPlan)
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function usePlan() {
 
     if (!currentPlan || currentPlan.id !== planId) {
       loadPlan(planId).then((plan) => {
-        if (!plan) {
+        if (!plan && !usePlanStore.getState().error) {
           navigate('/not-found', { replace: true })
         }
       })
@@ -27,6 +28,7 @@ export function usePlan() {
   return {
     plan: currentPlan,
     isLoading,
+    error,
     planId: planId ?? '',
   }
 }

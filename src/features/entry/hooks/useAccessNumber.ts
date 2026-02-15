@@ -19,11 +19,16 @@ export function useAccessNumber() {
     setIsLoading(true)
     setError('')
 
-    const plan = await loadPlanByAccessCode(trimmed)
-    if (plan) {
-      navigate(`/plan/${plan.id}`)
-    } else {
-      setError('존재하지 않는 입장번호입니다.')
+    try {
+      const plan = await loadPlanByAccessCode(trimmed)
+      if (plan) {
+        navigate(`/plan/${plan.id}`)
+      } else {
+        const storeError = usePlanStore.getState().error
+        setError(storeError ?? '존재하지 않는 입장번호입니다.')
+      }
+    } catch {
+      setError('서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.')
     }
     setIsLoading(false)
   }
