@@ -87,6 +87,7 @@ export async function addSection(
 
 export interface UpdateSectionInput {
   title?: string;
+  confirmed?: boolean;
   flightInfo?: Partial<FlightInfo>;
   accommodationInfo?: Partial<AccommodationInfo>;
 }
@@ -98,6 +99,7 @@ export async function updateSection(
 ): Promise<PlanSection> {
   const body: Record<string, unknown> = {}
   if (input.title !== undefined) body.title = input.title
+  if (input.confirmed !== undefined) body.confirmed = input.confirmed
   if (input.flightInfo) body.flightInfo = mapDomainFlightToApi(input.flightInfo)
   if (input.accommodationInfo) body.accommodationInfo = mapDomainAccommodationToApi(input.accommodationInfo)
 

@@ -3,6 +3,7 @@ import type { SectionFormProps } from '../types'
 import type { AccommodationInfo } from '@/types'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { ImageGallery } from '@/components/ui/ImageGallery'
 
 export function AccommodationForm({ section, onSave }: SectionFormProps) {
   const initial = section.accommodationInfo
@@ -15,6 +16,7 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
     bookingReference: initial?.bookingReference ?? '',
     contactNumber: initial?.contactNumber ?? '',
     notes: initial?.notes ?? '',
+    price: initial?.price,
   })
   const [isSaving, setIsSaving] = useState(false)
 
@@ -80,7 +82,24 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
           placeholder="참고 사항"
           className="sm:col-span-2"
         />
+        <div className="flex items-center gap-2 sm:col-span-2">
+          <Input
+            label="가격"
+            type="number"
+            value={acc.price ?? ''}
+            onChange={(e) => update({ price: e.target.value === '' ? undefined : Number(e.target.value) })}
+            placeholder="890000"
+            className="flex-1"
+          />
+          <span className="mt-5 text-sm text-gray-600">원</span>
+        </div>
       </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">이미지</label>
+        <ImageGallery />
+      </div>
+
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving} className="text-sm">
           {isSaving ? '저장 중...' : '저장'}

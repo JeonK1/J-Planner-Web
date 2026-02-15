@@ -15,12 +15,14 @@ export interface ApiPlanSection {
   title: string;
   sectionType: 'FLIGHT' | 'ACCOMMODATION';
   displayOrder: number;
+  confirmed: boolean;
   flightInfo: ApiFlightInfo | null;
   accommodationInfo: ApiAccommodationInfo | null;
 }
 
 export interface ApiFlightInfo {
   id: number;
+  tripType: 'ONE_WAY' | 'ROUND_TRIP';
   airline: string;
   flightNumber: string;
   departureAirport: string;
@@ -29,6 +31,15 @@ export interface ApiFlightInfo {
   arrivalTime: string;
   bookingReference: string | null;
   notes: string | null;
+  returnAirline: string | null;
+  returnFlightNumber: string | null;
+  returnDepartureAirport: string | null;
+  returnArrivalAirport: string | null;
+  returnDepartureTime: string | null;
+  returnArrivalTime: string | null;
+  returnBookingReference: string | null;
+  returnNotes: string | null;
+  price: number | null;
 }
 
 export interface ApiAccommodationInfo {
@@ -40,4 +51,5 @@ export interface ApiAccommodationInfo {
   bookingReference: string | null;
   contactNumber: string | null;
   notes: string | null;
+  price: number | null;
 }

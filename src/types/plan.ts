@@ -8,6 +8,7 @@ export interface PlanSection {
   type: SectionType;
   title: string;
   order: number;
+  confirmed: boolean;
   flightInfo: FlightInfo | null;
   accommodationInfo: AccommodationInfo | null;
 }

@@ -1,11 +1,25 @@
 import { useState, useCallback } from 'react'
-import type { PlanSection } from '@/types'
+import type { PlanSection, SectionType } from '@/types'
 import type { UpdateSectionInput } from '@/api'
 import { ExpandableSection } from '@/components/ui/ExpandableSection'
 import { Button } from '@/components/ui/Button'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { getSectionRenderer } from '@/features/sections/registry'
 import { usePlanStore } from '@/stores/usePlanStore'
+
+function formatSectionTitle(section: PlanSection): string {
+  const label = SECTION_TYPE_LABEL[section.type]
+  const detail =
+    section.type === 'accommodation' && section.accommodationInfo?.name
+      ? section.accommodationInfo.name
+      : section.title
+  return `${label} (${detail})`
+}
+
+const SECTION_TYPE_LABEL: Record<SectionType, string> = {
+  flight: '비행기 정보',
+  accommodation: '숙소 정보',
+}
 
 interface PlanSectionListProps {
   sections: PlanSection[];
@@ -23,6 +37,7 @@ function SectionItem({
   const updateSection = usePlanStore((s) => s.updateSection)
   const removeSection = usePlanStore((s) => s.removeSection)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [localConfirmed, setLocalConfirmed] = useState(section.confirmed)
   const [error, setError] = useState<string | null>(null)
 
   const dismissError = useCallback(() => setError(null), [])
@@ -34,7 +49,7 @@ function SectionItem({
   const handleSave = async (input: UpdateSectionInput) => {
     setError(null)
     try {
-      await updateSection(section.id, input)
+      await updateSection(section.id, { ...input, confirmed: localConfirmed })
     } catch {
       setError('저장에 실패했습니다. 다시 시도해주세요.')
     }
@@ -52,8 +67,28 @@ function SectionItem({
     }
   }
 
+  const confirmedHeaderRight = isEditMode ? (
+    <label className="flex items-center gap-1.5 text-sm">
+      <input
+        type="checkbox"
+        checked={localConfirmed}
+        onChange={() => setLocalConfirmed((prev) => !prev)}
+        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      />
+      <span className="font-medium text-gray-600">확정</span>
+    </label>
+  ) : (
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+      section.confirmed
+        ? 'bg-blue-100 text-blue-700'
+        : 'bg-gray-100 text-gray-600'
+    }`}>
+      {section.confirmed ? '확정' : '후보'}
+    </span>
+  )
+
   return (
-    <ExpandableSection title={section.title} defaultExpanded>
+    <ExpandableSection title={formatSectionTitle(section)} defaultExpanded headerRight={confirmedHeaderRight}>
       {error && (
         <div className="mb-3">
           <ErrorAlert message={error} onDismiss={dismissError} autoHideMs={5000} />

@@ -1,6 +1,7 @@
 import type { SectionDisplayProps } from '../types'
 import { formatDate } from '@/lib/utils'
 
+// TODO: API 연결 후 서버에서 이미지 URL 목록을 받아와서 표시
 export function AccommodationDisplay({ section }: SectionDisplayProps) {
   const acc = section.accommodationInfo
 
@@ -23,8 +24,11 @@ export function AccommodationDisplay({ section }: SectionDisplayProps) {
           {acc.checkOut && <span>{formatDate(acc.checkOut)}</span>}
         </div>
       )}
-      {(acc.bookingReference || acc.contactNumber || acc.notes) && (
+      {(acc.price != null || acc.bookingReference || acc.contactNumber || acc.notes) && (
         <div className="mt-2 flex flex-col gap-1 border-t border-gray-200 pt-2 text-xs text-gray-500">
+          {acc.price != null && (
+            <span className="font-medium text-gray-700">가격: {acc.price.toLocaleString()}원</span>
+          )}
           {acc.bookingReference && (
             <span>예약번호: {acc.bookingReference}</span>
           )}

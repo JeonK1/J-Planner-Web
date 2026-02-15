@@ -6,6 +6,7 @@ interface ExpandableSectionProps {
   defaultExpanded?: boolean;
   children: ReactNode;
   className?: string;
+  headerRight?: ReactNode;
 }
 
 export function ExpandableSection({
@@ -13,6 +14,7 @@ export function ExpandableSection({
   defaultExpanded = false,
   children,
   className,
+  headerRight,
 }: ExpandableSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
@@ -24,18 +26,25 @@ export function ExpandableSection({
         className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50"
       >
         <span className="text-base font-semibold text-gray-900">{title}</span>
-        <svg
-          className={cn(
-            'h-5 w-5 text-gray-500 transition-transform duration-200',
-            isExpanded && 'rotate-180',
+        <div className="flex items-center gap-2">
+          {headerRight && (
+            <div onClick={(e) => e.stopPropagation()}>
+              {headerRight}
+            </div>
           )}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
+          <svg
+            className={cn(
+              'h-5 w-5 text-gray-500 transition-transform duration-200',
+              isExpanded && 'rotate-180',
+            )}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </button>
       <div
         className={cn(
