@@ -1,8 +1,20 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { RootLayout } from '@/components/layout/RootLayout'
+import { EntryPage } from '@/pages/EntryPage'
+import { PlanPage } from '@/pages/PlanPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <h1 className="text-2xl font-bold text-center py-8">J-Planner</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<RootLayout />}>
+          <Route path="/" element={<EntryPage />} />
+          <Route path="/plan/:planId" element={<PlanPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 

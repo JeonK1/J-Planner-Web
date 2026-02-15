@@ -10,9 +10,75 @@ J를 위한 여행 플래너 웹 애플리케이션
 - Zustand
 - React Router v7
 
+## Prerequisites
+
+- Node.js 18 이상
+- npm 9 이상
+
 ## Getting Started
 
 ```bash
+# 의존성 설치
 npm install
+
+# 개발 서버 실행 (기본 http://localhost:5173)
 npm run dev
+
+# 프로덕션 빌드
+npm run build
+
+# 빌드 결과물 미리보기
+npm run preview
+
+# ESLint 검사
+npm run lint
+```
+
+## 테스트 방법
+
+앱 실행 후 아래 순서로 기능을 확인할 수 있습니다.
+
+### 1. 입장번호 입력
+
+- `/` 페이지에서 입장번호 `DEMO`를 입력하고 "입장" 클릭
+- 여행계획현황 페이지(`/plan/demo-plan-001`)로 이동 확인
+- 존재하지 않는 입장번호 입력 시 에러 메시지 표시 확인
+
+### 2. 여행계획 조회
+
+- 비행기정보, 숙소정보 섹션이 표시되는지 확인
+- 각 섹션 헤더 클릭 시 확장/축소 동작 확인
+
+### 3. 수정 모드
+
+- "수정" 버튼 클릭 → 비밀번호 다이얼로그 표시
+- 비밀번호 `1234` 입력 → 수정 모드 전환 확인
+- 잘못된 비밀번호 입력 → 에러 메시지 표시 확인
+- 수정 모드에서 항공편/숙소 정보 편집 후 "저장" 클릭
+- "수정 완료" 클릭 → 조회 모드 복귀 확인
+
+### 4. 데이터 영속성
+
+- 데이터 수정 후 페이지 새로고침 → 수정된 데이터 유지 확인 (LocalStorage)
+- 새로고침 후 수정 모드 해제 확인 (인증 상태 초기화)
+
+### 데모 계정 정보
+
+| 항목 | 값 |
+|------|------|
+| 입장번호 | `DEMO` |
+| 비밀번호 | `1234` |
+
+## Project Structure
+
+```
+src/
+├── pages/            # 페이지 컴포넌트 (EntryPage, PlanPage, NotFoundPage)
+├── components/       # 공유 컴포넌트 (ui/, layout/)
+├── features/         # 기능 모듈 (entry/, plan/, sections/)
+├── stores/           # Zustand 스토어 (usePlanStore, useAuthStore)
+├── data/             # 데이터 계층 (Repository 패턴)
+├── types/            # 타입 정의
+├── lib/              # 유틸리티 (cn, utils)
+└── constants/        # 상수 및 시드 데이터
 ```
