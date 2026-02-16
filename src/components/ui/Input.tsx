@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import { useId, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -10,9 +10,13 @@ export function Input({
   label,
   error,
   className,
-  id,
+  id: externalId,
   ...props
 }: InputProps) {
+  const generatedId = useId()
+  const id = externalId ?? generatedId
+  const errorId = `${id}-error`
+
   return (
     <div className="flex flex-col gap-1">
       {label && (
@@ -25,6 +29,8 @@ export function Input({
       )}
       <input
         id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         className={cn(
           'rounded-lg border border-gray-300 px-3 py-2 text-sm',
           'outline-none transition-colors',
@@ -36,7 +42,7 @@ export function Input({
         {...props}
       />
       {error && (
-        <p className="text-xs text-red-500">{error}</p>
+        <p id={errorId} className="text-xs text-red-500">{error}</p>
       )}
     </div>
   )

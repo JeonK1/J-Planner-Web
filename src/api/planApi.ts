@@ -1,7 +1,7 @@
 import { api, ApiError } from './client'
 import type { ApiTravelPlan, ApiPlanSection } from './types'
 import { mapApiPlanToDomain, mapApiSectionToDomain, mapDomainFlightToApi, mapDomainAccommodationToApi } from './mappers'
-import type { TravelPlan, PlanSection, SectionType, FlightInfo, AccommodationInfo } from '@/types'
+import type { TravelPlan, PlanSection, SectionType, FlightFormData, AccommodationInfo } from '@/types'
 
 // --- Plan ---
 
@@ -88,7 +88,7 @@ export async function addSection(
 export interface UpdateSectionInput {
   title?: string;
   confirmed?: boolean;
-  flightInfo?: Partial<FlightInfo>;
+  flightInfo?: Partial<FlightFormData>;
   accommodationInfo?: Partial<AccommodationInfo>;
 }
 

@@ -20,9 +20,9 @@ export interface ApiPlanSection {
   accommodationInfo: ApiAccommodationInfo | null;
 }
 
-export interface ApiFlightInfo {
+export interface ApiFlightLeg {
   id: number;
-  tripType: 'ONE_WAY' | 'ROUND_TRIP';
+  legOrder: number;
   airline: string;
   flightNumber: string;
   departureAirport: string;
@@ -31,14 +31,12 @@ export interface ApiFlightInfo {
   arrivalTime: string;
   bookingReference: string | null;
   notes: string | null;
-  returnAirline: string | null;
-  returnFlightNumber: string | null;
-  returnDepartureAirport: string | null;
-  returnArrivalAirport: string | null;
-  returnDepartureTime: string | null;
-  returnArrivalTime: string | null;
-  returnBookingReference: string | null;
-  returnNotes: string | null;
+}
+
+export interface ApiFlightInfo {
+  id: number;
+  tripType: 'ONE_WAY' | 'ROUND_TRIP';
+  legs: ApiFlightLeg[];
   price: number | null;
 }
 

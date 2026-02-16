@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useId, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 interface ExpandableSectionProps {
@@ -19,12 +19,15 @@ export function ExpandableSection({
   headerRight,
 }: ExpandableSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+  const contentId = useId()
 
   return (
     <div className={cn('overflow-hidden rounded-xl border border-gray-200 bg-white', className)}>
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
+        aria-expanded={isExpanded}
+        aria-controls={contentId}
         className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50"
       >
         <div className="flex items-center gap-2">
@@ -56,6 +59,8 @@ export function ExpandableSection({
         </div>
       </button>
       <div
+        id={contentId}
+        role="region"
         className={cn(
           'grid transition-[grid-template-rows] duration-200',
           isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',

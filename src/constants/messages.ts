@@ -1,0 +1,33 @@
+export const MESSAGES = {
+  error: {
+    unknown: '알 수 없는 오류가 발생했습니다.',
+    network: '서버와 통신 중 오류가 발생했습니다.',
+    networkRetry: '서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.',
+    serverError: '서버 오류가 발생했습니다. 다시 시도해주세요.',
+    saveFailed: '저장에 실패했습니다. 다시 시도해주세요.',
+    deleteFailed: '삭제에 실패했습니다. 다시 시도해주세요.',
+    reorderFailed: '순서 변경에 실패했습니다. 다시 시도해주세요.',
+    addSectionFailed: '섹션 추가에 실패했습니다. 다시 시도해주세요.',
+    planNotFound: '존재하지 않는 플랜입니다.',
+    accessCodeNotFound: '존재하지 않는 입장번호입니다.',
+    accessCodeCheckFailed: '입장번호 확인에 실패했습니다.',
+    duplicateAccessCode: '이미 사용 중인 입장번호입니다.',
+    sessionExpired: '인증이 만료되었습니다. 비밀번호를 다시 입력해주세요.',
+  },
+  validation: {
+    requiredAccessCode: '입장번호를 입력해주세요.',
+    requiredPassword: '비밀번호를 입력해주세요.',
+    passwordMismatch: '비밀번호가 일치하지 않습니다.',
+    requiredTitle: '여행 제목을 입력해주세요.',
+    requiredStartDate: '시작일을 선택해주세요.',
+    requiredEndDate: '종료일을 선택해주세요.',
+    endDateBeforeStart: '종료일은 시작일 이후여야 합니다.',
+    flightLegTimeRange: (legIndex: number) =>
+      `구간 ${legIndex + 1}의 출발시간이 도착시간보다 같거나 늦을 수 없습니다.` as const,
+    accommodationDateRange: '체크인 날짜가 체크아웃 날짜보다 같거나 늦을 수 없습니다.',
+    accessCodeMaxLength: '입장번호는 최대 50자까지 입력할 수 있습니다.',
+    passwordMinLength: '비밀번호는 최소 4자 이상이어야 합니다.',
+    titleMaxLength: '제목은 최대 100자까지 입력할 수 있습니다.',
+    sectionTitleMaxLength: '섹션 제목은 최대 200자까지 입력할 수 있습니다.',
+  },
+} as const

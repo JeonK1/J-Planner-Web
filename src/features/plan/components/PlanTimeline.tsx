@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useMemo, useEffect } from 'react'
+import { useRef, useState, useCallback, useMemo, useEffect, memo } from 'react'
 import type { TravelPlan, PlanSection } from '@/types'
 
 interface PlanTimelineProps {
@@ -11,6 +11,16 @@ type TimelineEvent = {
   label: string;
   startMs: number;
   endMs: number;
+}
+
+interface DayInfo {
+  date: Date;
+  key: string;
+  isToday: boolean;
+  inPlan: boolean;
+  month: number;
+  dayOfMonth: number;
+  weekday: string;
 }
 
 const DAY_WIDTH = 80
@@ -30,30 +40,19 @@ function extractFlightEvents(sections: PlanSection[]): TimelineEvent[] {
   for (const section of sections) {
     if (section.type !== 'flight' || !section.flightInfo || !section.confirmed) continue
     const f = section.flightInfo
-    const dep = parseDate(f.departureTime)
-    const arr = parseDate(f.arrivalTime)
-    if (!dep || !arr) continue
 
-    events.push({
-      id: `${section.id}-outbound`,
-      type: 'flight',
-      label: f.flightNumber || f.airline || section.title,
-      startMs: dep.getTime(),
-      endMs: arr.getTime(),
-    })
+    for (const leg of f.legs) {
+      const dep = parseDate(leg.departureTime)
+      const arr = parseDate(leg.arrivalTime)
+      if (!dep || !arr) continue
 
-    if (f.tripType === 'roundTrip') {
-      const rDep = parseDate(f.returnDepartureTime ?? '')
-      const rArr = parseDate(f.returnArrivalTime ?? '')
-      if (rDep && rArr) {
-        events.push({
-          id: `${section.id}-return`,
-          type: 'flight',
-          label: f.returnFlightNumber || f.returnAirline || section.title,
-          startMs: rDep.getTime(),
-          endMs: rArr.getTime(),
-        })
-      }
+      events.push({
+        id: `${section.id}-leg-${leg.legOrder}`,
+        type: 'flight',
+        label: leg.flightNumber || leg.airline || section.title,
+        startMs: dep.getTime(),
+        endMs: arr.getTime(),
+      })
     }
   }
 
@@ -109,6 +108,81 @@ function isInRange(day: Date, start: Date, end: Date): boolean {
   return d >= start.getTime() && d <= end.getTime()
 }
 
+// --- Memoized sub-components ---
+
+const TimelineDayCell = memo(function TimelineDayCell({
+  day,
+}: {
+  day: DayInfo;
+}) {
+  let bg = ''
+  if (day.isToday) bg = 'bg-blue-50'
+  else if (day.inPlan) bg = 'bg-amber-50'
+
+  return (
+    <div
+      className={`flex-shrink-0 border-r border-gray-100 px-1 py-2 text-center last:border-r-0 ${bg}`}
+      style={{ width: DAY_WIDTH }}
+    >
+      <div className={`text-xs font-medium ${
+        day.isToday ? 'text-blue-600' : day.inPlan ? 'text-gray-900' : 'text-gray-400'
+      }`}>
+        {day.month}/{day.dayOfMonth}
+      </div>
+      <div className={`text-[10px] ${
+        day.isToday ? 'text-blue-400' : day.inPlan ? 'text-gray-500' : 'text-gray-300'
+      }`}>
+        {day.weekday}
+      </div>
+    </div>
+  )
+})
+
+const FlightEventItem = memo(function FlightEventItem({
+  event,
+  left,
+  width,
+}: {
+  event: TimelineEvent;
+  left: number;
+  width: number;
+}) {
+  return (
+    <div
+      className="absolute flex items-center rounded-md bg-blue-100 px-2 text-[11px] font-medium text-blue-700 shadow-sm"
+      style={{ left, width, top: 4, height: 22 }}
+      title={event.label}
+    >
+      <span>&#9992;</span>
+    </div>
+  )
+})
+
+const AccommodationEventItem = memo(function AccommodationEventItem({
+  event,
+  left,
+  width,
+  top,
+}: {
+  event: TimelineEvent;
+  left: number;
+  width: number;
+  top: number;
+}) {
+  return (
+    <div
+      className="absolute flex items-center rounded-md bg-purple-100 px-2 text-[11px] font-medium text-purple-700 shadow-sm"
+      style={{ left, width, top, height: 22 }}
+      title={event.label}
+    >
+      <span className="truncate">
+        <span className="mr-1">&#127976;</span>
+        {event.label}
+      </span>
+    </div>
+  )
+})
+
 export function PlanTimeline({ plan }: PlanTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -137,6 +211,20 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
   const accEvents = useMemo(() => extractAccEvents(plan.sections), [plan.sections])
 
   const today = useMemo(() => new Date(), [])
+
+  // Pre-compute day info to avoid recalculating isToday/inPlan every render
+  const dayInfos = useMemo<DayInfo[]>(() => {
+    if (!planStart || !planEnd) return []
+    return days.map((day) => ({
+      date: day,
+      key: day.toISOString(),
+      isToday: isSameDay(day, today),
+      inPlan: isInRange(day, planStart, planEnd),
+      month: day.getMonth() + 1,
+      dayOfMonth: day.getDate(),
+      weekday: WEEKDAYS[day.getDay()],
+    }))
+  }, [days, today, planStart, planEnd])
 
   const timelineStartMs = timelineStart?.getTime() ?? 0
   const totalMs = days.length * DAY_MS
@@ -203,82 +291,46 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
         <div style={{ width: totalWidth, minWidth: '100%' }}>
           {/* 날짜 행 */}
           <div className="flex border-b border-gray-200">
-            {days.map((day) => {
-              const isToday = isSameDay(day, today)
-              const inPlan = isInRange(day, planStart, planEnd)
-              let bg = ''
-              if (isToday) bg = 'bg-blue-50'
-              else if (inPlan) bg = 'bg-amber-50'
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={`flex-shrink-0 border-r border-gray-100 px-1 py-2 text-center last:border-r-0 ${bg}`}
-                  style={{ width: DAY_WIDTH }}
-                >
-                  <div className={`text-xs font-medium ${
-                    isToday ? 'text-blue-600' : inPlan ? 'text-gray-900' : 'text-gray-400'
-                  }`}>
-                    {day.getMonth() + 1}/{day.getDate()}
-                  </div>
-                  <div className={`text-[10px] ${
-                    isToday ? 'text-blue-400' : inPlan ? 'text-gray-500' : 'text-gray-300'
-                  }`}>
-                    {WEEKDAYS[day.getDay()]}
-                  </div>
-                </div>
-              )
-            })}
+            {dayInfos.map((day) => (
+              <TimelineDayCell key={day.key} day={day} />
+            ))}
           </div>
 
           {/* 이벤트 영역 */}
           <div className="relative px-0 py-2" style={{ minHeight: 28 * rowCount + 8 }}>
             {/* 날짜 구분선 */}
-            {days.map((day, i) => {
-              const inPlan = isInRange(day, planStart, planEnd)
+            {dayInfos.map((day, i) => (
+              <div
+                key={`grid-${day.key}`}
+                className={`absolute top-0 bottom-0 border-r ${day.inPlan ? 'border-gray-100' : 'border-gray-50'}`}
+                style={{ left: (i + 1) * DAY_WIDTH }}
+              />
+            ))}
+
+            {/* 비행기 이벤트 */}
+            {flightEvents.map((seg) => {
+              const { left, width } = getEventStyle(seg)
               return (
-                <div
-                  key={`grid-${day.toISOString()}`}
-                  className={`absolute top-0 bottom-0 border-r ${inPlan ? 'border-gray-100' : 'border-gray-50'}`}
-                  style={{ left: (i + 1) * DAY_WIDTH }}
+                <FlightEventItem
+                  key={seg.id}
+                  event={seg}
+                  left={left}
+                  width={width}
                 />
               )
             })}
 
-            {/* 비행기 이벤트: 모든 세그먼트를 하나의 줄에 배치 */}
-            {flightEvents.map((seg) => {
-              const { left, width } = getEventStyle(seg)
-              return (
-                <div
-                  key={seg.id}
-                  className="absolute flex items-center rounded-md bg-blue-100 px-2 text-[11px] font-medium text-blue-700 shadow-sm"
-                  style={{ left, width, top: 4, height: 22 }}
-                  title={seg.label}
-                >
-                  <span>&#9992;</span>
-                </div>
-              )
-            })}
-
-            {/* 숙소 이벤트: 모든 숙소를 하나의 줄에 배치 */}
+            {/* 숙소 이벤트 */}
             {accEvents.map((event) => {
               const { left, width } = getEventStyle(event)
               return (
-                <div
+                <AccommodationEventItem
                   key={event.id}
-                  className="absolute flex items-center rounded-md bg-purple-100 px-2 text-[11px] font-medium text-purple-700 shadow-sm"
-                  style={{
-                    left,
-                    width,
-                    top: 4 + (hasFlights ? 1 : 0) * 28,
-                    height: 22,
-                  }}
-                  title={event.label}
-                >
-                  <span className="truncate">
-                    <span className="mr-1">&#127976;</span>
-                    {event.label}
-                  </span>
-                </div>
+                  event={event}
+                  left={left}
+                  width={width}
+                  top={4 + (hasFlights ? 1 : 0) * 28}
+                />
               )
             })}
           </div>

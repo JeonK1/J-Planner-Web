@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlanStore } from '@/stores/usePlanStore'
+import { MESSAGES } from '@/constants'
 
 export function useAccessNumber() {
   const [accessCode, setAccessCode] = useState('')
@@ -12,7 +13,7 @@ export function useAccessNumber() {
   const submit = async () => {
     const trimmed = accessCode.trim()
     if (!trimmed) {
-      setError('입장번호를 입력해주세요.')
+      setError(MESSAGES.validation.requiredAccessCode)
       return
     }
 
@@ -25,10 +26,10 @@ export function useAccessNumber() {
         navigate(`/plan/${plan.id}`)
       } else {
         const storeError = usePlanStore.getState().error
-        setError(storeError ?? '존재하지 않는 입장번호입니다.')
+        setError(storeError ?? MESSAGES.error.accessCodeNotFound)
       }
     } catch {
-      setError('서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요.')
+      setError(MESSAGES.error.networkRetry)
     }
     setIsLoading(false)
   }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { usePlanStore } from '@/stores/usePlanStore'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { checkAccessCodeExists, ApiError } from '@/api'
+import { CONSTRAINTS, MESSAGES } from '@/constants'
 
 export function CreatePlanPage() {
   const navigate = useNavigate()
@@ -25,35 +26,41 @@ export function CreatePlanPage() {
     const newErrors: Record<string, string> = {}
 
     if (!accessCode.trim()) {
-      newErrors.accessCode = '입장번호를 입력해주세요.'
+      newErrors.accessCode = MESSAGES.validation.requiredAccessCode
+    } else if (accessCode.trim().length > CONSTRAINTS.plan.accessCodeMaxLength) {
+      newErrors.accessCode = MESSAGES.validation.accessCodeMaxLength
     } else {
       try {
         const exists = await checkAccessCodeExists(accessCode.trim())
         if (exists) {
-          newErrors.accessCode = '이미 사용 중인 입장번호입니다.'
+          newErrors.accessCode = MESSAGES.error.duplicateAccessCode
         }
       } catch {
-        newErrors.accessCode = '입장번호 확인에 실패했습니다.'
+        newErrors.accessCode = MESSAGES.error.accessCodeCheckFailed
       }
     }
 
     if (!password) {
-      newErrors.password = '비밀번호를 입력해주세요.'
+      newErrors.password = MESSAGES.validation.requiredPassword
+    } else if (password.length < CONSTRAINTS.plan.passwordMinLength) {
+      newErrors.password = MESSAGES.validation.passwordMinLength
     }
     if (password !== passwordConfirm) {
-      newErrors.passwordConfirm = '비밀번호가 일치하지 않습니다.'
+      newErrors.passwordConfirm = MESSAGES.validation.passwordMismatch
     }
     if (!title.trim()) {
-      newErrors.title = '여행 제목을 입력해주세요.'
+      newErrors.title = MESSAGES.validation.requiredTitle
+    } else if (title.trim().length > CONSTRAINTS.plan.titleMaxLength) {
+      newErrors.title = MESSAGES.validation.titleMaxLength
     }
     if (!startDate) {
-      newErrors.startDate = '시작일을 선택해주세요.'
+      newErrors.startDate = MESSAGES.validation.requiredStartDate
     }
     if (!endDate) {
-      newErrors.endDate = '종료일을 선택해주세요.'
+      newErrors.endDate = MESSAGES.validation.requiredEndDate
     }
     if (startDate && endDate && startDate > endDate) {
-      newErrors.endDate = '종료일은 시작일 이후여야 합니다.'
+      newErrors.endDate = MESSAGES.validation.endDateBeforeStart
     }
 
     setErrors(newErrors)
@@ -84,9 +91,9 @@ export function CreatePlanPage() {
       navigate(`/plan/${plan.id}`, { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.code === 'DUPLICATE_ACCESS_CODE') {
-        setErrors({ accessCode: '이미 사용 중인 입장번호입니다.' })
+        setErrors({ accessCode: MESSAGES.error.duplicateAccessCode })
       } else {
-        setErrors({ accessCode: '서버 오류가 발생했습니다. 다시 시도해주세요.' })
+        setErrors({ accessCode: MESSAGES.error.serverError })
       }
       setIsSubmitting(false)
     }
@@ -110,6 +117,7 @@ export function CreatePlanPage() {
               onChange={(e) => setAccessCode(e.target.value)}
               placeholder="다른 사람이 입장할 코드"
               error={errors.accessCode}
+              maxLength={CONSTRAINTS.plan.accessCodeMaxLength}
               autoFocus
             />
             <div />
@@ -140,6 +148,7 @@ export function CreatePlanPage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="일본 도쿄 여행 2026"
             error={errors.title}
+            maxLength={CONSTRAINTS.plan.titleMaxLength}
           />
           <Input
             id="description"

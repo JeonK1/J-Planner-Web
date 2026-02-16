@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { TravelPlan, SectionType } from '@/types'
+import { MESSAGES } from '@/constants'
 import {
   fetchPlanByAccessCode,
   fetchPlan,
@@ -42,11 +43,11 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
       if (plan) {
         set({ currentPlan: plan, isLoading: false })
       } else {
-        set({ error: '존재하지 않는 입장번호입니다.', isLoading: false })
+        set({ error: MESSAGES.error.accessCodeNotFound, isLoading: false })
       }
       return plan
     } catch {
-      set({ error: '서버와 통신 중 오류가 발생했습니다.', isLoading: false })
+      set({ error: MESSAGES.error.network, isLoading: false })
       return null
     }
   },
@@ -58,11 +59,11 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
       if (plan) {
         set({ currentPlan: plan, isLoading: false })
       } else {
-        set({ error: '존재하지 않는 플랜입니다.', isLoading: false })
+        set({ error: MESSAGES.error.planNotFound, isLoading: false })
       }
       return plan
     } catch {
-      set({ error: '서버와 통신 중 오류가 발생했습니다.', isLoading: false })
+      set({ error: MESSAGES.error.network, isLoading: false })
       return null
     }
   },
@@ -91,11 +92,14 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     if (!currentPlan) return
 
     const newSection = await apiAddSection(currentPlan.id, title, type)
-    set({
-      currentPlan: {
-        ...currentPlan,
-        sections: [...currentPlan.sections, newSection],
-      },
+    set((state) => {
+      if (!state.currentPlan) return state
+      return {
+        currentPlan: {
+          ...state.currentPlan,
+          sections: [...state.currentPlan.sections, newSection],
+        },
+      }
     })
   },
 
@@ -104,13 +108,16 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     if (!currentPlan) return
 
     const updatedSection = await apiUpdateSection(currentPlan.id, sectionId, input)
-    set({
-      currentPlan: {
-        ...currentPlan,
-        sections: currentPlan.sections.map((s) =>
-          s.id === sectionId ? updatedSection : s,
-        ),
-      },
+    set((state) => {
+      if (!state.currentPlan) return state
+      return {
+        currentPlan: {
+          ...state.currentPlan,
+          sections: state.currentPlan.sections.map((s) =>
+            s.id === sectionId ? updatedSection : s,
+          ),
+        },
+      }
     })
   },
 
@@ -120,11 +127,14 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
 
     const numericIds = sectionIds.map(Number)
     const updatedSections = await apiReorderSections(currentPlan.id, numericIds)
-    set({
-      currentPlan: {
-        ...currentPlan,
-        sections: updatedSections,
-      },
+    set((state) => {
+      if (!state.currentPlan) return state
+      return {
+        currentPlan: {
+          ...state.currentPlan,
+          sections: updatedSections,
+        },
+      }
     })
   },
 
@@ -133,11 +143,14 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     if (!currentPlan) return
 
     await apiDeleteSection(currentPlan.id, sectionId)
-    set({
-      currentPlan: {
-        ...currentPlan,
-        sections: currentPlan.sections.filter((s) => s.id !== sectionId),
-      },
+    set((state) => {
+      if (!state.currentPlan) return state
+      return {
+        currentPlan: {
+          ...state.currentPlan,
+          sections: state.currentPlan.sections.filter((s) => s.id !== sectionId),
+        },
+      }
     })
   },
 

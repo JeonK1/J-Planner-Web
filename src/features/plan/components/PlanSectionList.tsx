@@ -1,6 +1,7 @@
 import { useState, useCallback, type ReactNode } from 'react'
 import type { PlanSection, SectionType } from '@/types'
 import { ApiError } from '@/api'
+import { MESSAGES } from '@/constants'
 import type { UpdateSectionInput } from '@/api'
 import { ExpandableSection } from '@/components/ui/ExpandableSection'
 import { DraggableList } from '@/components/ui/DraggableList'
@@ -58,7 +59,7 @@ function SectionItem({
       if (e instanceof ApiError) {
         setError(e.message)
       } else {
-        setError('저장에 실패했습니다. 다시 시도해주세요.')
+        setError(MESSAGES.error.saveFailed)
       }
     }
   }
@@ -69,8 +70,12 @@ function SectionItem({
     setError(null)
     try {
       await removeSection(section.id)
-    } catch {
-      setError('삭제에 실패했습니다. 다시 시도해주세요.')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(e.message)
+      } else {
+        setError(MESSAGES.error.deleteFailed)
+      }
       setIsDeleting(false)
     }
   }
@@ -147,7 +152,7 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
       if (e instanceof ApiError) {
         setReorderError(e.message)
       } else {
-        setReorderError('순서 변경에 실패했습니다. 다시 시도해주세요.')
+        setReorderError(MESSAGES.error.reorderFailed)
       }
     }
   }
@@ -157,8 +162,12 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
     setAddError(null)
     try {
       await addSection(type, title)
-    } catch {
-      setAddError('섹션 추가에 실패했습니다. 다시 시도해주세요.')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setAddError(e.message)
+      } else {
+        setAddError(MESSAGES.error.addSectionFailed)
+      }
     }
     setIsAdding(false)
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 export function useEditMode(planId: string) {
@@ -8,6 +8,17 @@ export function useEditMode(planId: string) {
   const exitEditMode = useAuthStore((s) => s.exitEditMode)
 
   const isEditMode = authenticatedPlanIds.has(planId)
+
+  useEffect(() => {
+    const handler = () => {
+      if (authenticatedPlanIds.has(planId)) {
+        exitEditMode(planId)
+        setIsPasswordDialogOpen(true)
+      }
+    }
+    window.addEventListener('auth:session-expired', handler)
+    return () => window.removeEventListener('auth:session-expired', handler)
+  }, [planId, authenticatedPlanIds, exitEditMode])
 
   const requestEdit = () => {
     setIsPasswordDialogOpen(true)

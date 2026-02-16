@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/Input'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { formatDate } from '@/lib/utils'
 import { usePlanStore } from '@/stores/usePlanStore'
+import { ApiError } from '@/api'
+import { CONSTRAINTS, MESSAGES } from '@/constants'
 
 interface PlanHeaderProps {
   plan: TravelPlan;
@@ -37,10 +39,19 @@ export function PlanHeader({
   const handleSave = async () => {
     setIsSaving(true)
     setError(null)
+    if (title.trim().length > CONSTRAINTS.plan.titleMaxLength) {
+      setError(MESSAGES.validation.titleMaxLength)
+      setIsSaving(false)
+      return
+    }
     try {
       await updatePlanInfo({ title, description, startDate, endDate })
-    } catch {
-      setError('저장에 실패했습니다. 다시 시도해주세요.')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(e.message)
+      } else {
+        setError(MESSAGES.error.saveFailed)
+      }
     }
     setIsSaving(false)
   }
@@ -62,6 +73,7 @@ export function PlanHeader({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="여행 제목을 입력하세요"
+              maxLength={CONSTRAINTS.plan.titleMaxLength}
             />
             <Input
               label="설명"

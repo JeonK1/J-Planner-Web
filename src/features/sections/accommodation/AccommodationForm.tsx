@@ -1,39 +1,39 @@
-import { useState } from 'react'
 import type { SectionFormProps } from '../types'
 import type { AccommodationInfo } from '@/types'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { ImageGallery } from '@/components/ui/ImageGallery'
+import { CONSTRAINTS, MESSAGES } from '@/constants'
+import { useSectionForm } from '../hooks/useSectionForm'
 
 export function AccommodationForm({ section, onSave }: SectionFormProps) {
   const initial = section.accommodationInfo
-  const [title, setTitle] = useState(section.title)
-  const [acc, setAcc] = useState<Omit<AccommodationInfo, 'id'>>({
-    name: initial?.name ?? '',
-    address: initial?.address ?? '',
-    checkIn: initial?.checkIn ?? '',
-    checkOut: initial?.checkOut ?? '',
-    bookingReference: initial?.bookingReference ?? '',
-    contactNumber: initial?.contactNumber ?? '',
-    notes: initial?.notes ?? '',
-    price: initial?.price,
-  })
-  const [isSaving, setIsSaving] = useState(false)
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const { title, setTitle, data: acc, update, isSaving, validationError, save } =
+    useSectionForm<Omit<AccommodationInfo, 'id'>>(
+      section,
+      {
+        name: initial?.name ?? '',
+        address: initial?.address ?? '',
+        checkIn: initial?.checkIn ?? '',
+        checkOut: initial?.checkOut ?? '',
+        bookingReference: initial?.bookingReference ?? '',
+        contactNumber: initial?.contactNumber ?? '',
+        notes: initial?.notes ?? '',
+        price: initial?.price,
+      },
+      onSave,
+    )
 
-  const update = (updates: Partial<Omit<AccommodationInfo, 'id'>>) => {
-    setAcc((prev) => ({ ...prev, ...updates }))
-  }
-
-  const handleSave = async () => {
-    setValidationError(null)
-    if (acc.checkIn && acc.checkOut && acc.checkIn >= acc.checkOut) {
-      setValidationError('체크인 날짜가 체크아웃 날짜보다 같거나 늦을 수 없습니다.')
-      return
-    }
-    setIsSaving(true)
-    await onSave({ title, accommodationInfo: acc })
-    setIsSaving(false)
+  const handleSave = () => {
+    save(
+      () => {
+        if (acc.checkIn && acc.checkOut && acc.checkIn >= acc.checkOut) {
+          return MESSAGES.validation.accommodationDateRange
+        }
+        return null
+      },
+      () => ({ title, accommodationInfo: acc }),
+    )
   }
 
   return (
@@ -43,6 +43,7 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="도쿄 호텔"
+        maxLength={CONSTRAINTS.plan.sectionTitleMaxLength}
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Input
@@ -50,12 +51,14 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
           value={acc.name}
           onChange={(e) => update({ name: e.target.value })}
           placeholder="신주쿠 워싱턴 호텔"
+          maxLength={CONSTRAINTS.accommodation.nameMaxLength}
         />
         <Input
           label="주소"
           value={acc.address}
           onChange={(e) => update({ address: e.target.value })}
           placeholder="도쿄 신주쿠구 ..."
+          maxLength={CONSTRAINTS.accommodation.addressMaxLength}
         />
         <Input
           label="체크인"
@@ -74,12 +77,14 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
           value={acc.bookingReference ?? ''}
           onChange={(e) => update({ bookingReference: e.target.value })}
           placeholder="HTL-001"
+          maxLength={CONSTRAINTS.accommodation.bookingReferenceMaxLength}
         />
         <Input
           label="연락처"
           value={acc.contactNumber ?? ''}
           onChange={(e) => update({ contactNumber: e.target.value })}
           placeholder="+81-3-1234-5678"
+          maxLength={CONSTRAINTS.accommodation.contactNumberMaxLength}
         />
         <Input
           label="메모"
@@ -87,6 +92,7 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
           onChange={(e) => update({ notes: e.target.value })}
           placeholder="참고 사항"
           className="sm:col-span-2"
+          maxLength={CONSTRAINTS.accommodation.notesMaxLength}
         />
         <div className="flex items-center gap-2 sm:col-span-2">
           <Input

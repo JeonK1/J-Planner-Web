@@ -81,21 +81,12 @@ export function FlightDisplay({ section }: SectionDisplayProps) {
       </div>
       <FlightCard
         label={isRoundTrip ? '출국' : undefined}
-        flight={flight}
+        flight={flight.legs[0]}
       />
-      {isRoundTrip && (
+      {isRoundTrip && flight.legs[1] && (
         <FlightCard
           label="입국"
-          flight={{
-            airline: flight.returnAirline ?? '',
-            flightNumber: flight.returnFlightNumber ?? '',
-            departureAirport: flight.returnDepartureAirport ?? '',
-            arrivalAirport: flight.returnArrivalAirport ?? '',
-            departureTime: flight.returnDepartureTime,
-            arrivalTime: flight.returnArrivalTime,
-            bookingReference: flight.returnBookingReference,
-            notes: flight.returnNotes,
-          }}
+          flight={flight.legs[1]}
         />
       )}
     </div>

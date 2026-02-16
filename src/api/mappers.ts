@@ -1,5 +1,5 @@
 import type { ApiTravelPlan, ApiPlanSection, ApiFlightInfo, ApiAccommodationInfo } from './types'
-import type { TravelPlan, PlanSection, FlightInfo, AccommodationInfo, SectionType, TripType } from '@/types'
+import type { TravelPlan, PlanSection, FlightInfo, AccommodationInfo, SectionType, TripType, FlightFormData } from '@/types'
 
 export function mapApiPlanToDomain(api: ApiTravelPlan): TravelPlan {
   return {
@@ -33,25 +33,22 @@ const API_TRIP_TYPE_MAP: Record<string, TripType> = {
 }
 
 function mapApiFlightToDomain(api: ApiFlightInfo): FlightInfo {
+  const tripType = API_TRIP_TYPE_MAP[api.tripType] ?? 'oneWay'
   return {
     id: String(api.id),
-    tripType: API_TRIP_TYPE_MAP[api.tripType] ?? 'oneWay',
-    airline: api.airline,
-    flightNumber: api.flightNumber,
-    departureAirport: api.departureAirport,
-    arrivalAirport: api.arrivalAirport,
-    departureTime: api.departureTime,
-    arrivalTime: api.arrivalTime,
-    bookingReference: api.bookingReference ?? undefined,
-    notes: api.notes ?? undefined,
-    returnAirline: api.returnAirline ?? undefined,
-    returnFlightNumber: api.returnFlightNumber ?? undefined,
-    returnDepartureAirport: api.returnDepartureAirport ?? undefined,
-    returnArrivalAirport: api.returnArrivalAirport ?? undefined,
-    returnDepartureTime: api.returnDepartureTime ?? undefined,
-    returnArrivalTime: api.returnArrivalTime ?? undefined,
-    returnBookingReference: api.returnBookingReference ?? undefined,
-    returnNotes: api.returnNotes ?? undefined,
+    tripType,
+    legs: api.legs.map((leg) => ({
+      id: String(leg.id),
+      legOrder: leg.legOrder,
+      airline: leg.airline,
+      flightNumber: leg.flightNumber,
+      departureAirport: leg.departureAirport,
+      arrivalAirport: leg.arrivalAirport,
+      departureTime: leg.departureTime,
+      arrivalTime: leg.arrivalTime,
+      bookingReference: leg.bookingReference ?? undefined,
+      notes: leg.notes ?? undefined,
+    })),
     price: api.price ?? undefined,
   }
 }
@@ -75,25 +72,22 @@ const DOMAIN_TRIP_TYPE_MAP: Record<string, string> = {
   roundTrip: 'ROUND_TRIP',
 }
 
-export function mapDomainFlightToApi(flight: Partial<FlightInfo>) {
+export function mapDomainFlightToApi(flight: Partial<FlightFormData>) {
+  const legs = (flight.legs ?? []).map((leg, index) => ({
+    legOrder: index,
+    airline: leg.airline ?? '',
+    flightNumber: leg.flightNumber ?? '',
+    departureAirport: leg.departureAirport ?? '',
+    arrivalAirport: leg.arrivalAirport ?? '',
+    departureTime: leg.departureTime || null,
+    arrivalTime: leg.arrivalTime || null,
+    bookingReference: leg.bookingReference || null,
+    notes: leg.notes || null,
+  }))
+
   return {
     tripType: DOMAIN_TRIP_TYPE_MAP[flight.tripType ?? 'oneWay'] ?? 'ONE_WAY',
-    airline: flight.airline ?? '',
-    flightNumber: flight.flightNumber ?? '',
-    departureAirport: flight.departureAirport ?? '',
-    arrivalAirport: flight.arrivalAirport ?? '',
-    departureTime: flight.departureTime || null,
-    arrivalTime: flight.arrivalTime || null,
-    bookingReference: flight.bookingReference || null,
-    notes: flight.notes || null,
-    returnAirline: flight.returnAirline || null,
-    returnFlightNumber: flight.returnFlightNumber || null,
-    returnDepartureAirport: flight.returnDepartureAirport || null,
-    returnArrivalAirport: flight.returnArrivalAirport || null,
-    returnDepartureTime: flight.returnDepartureTime || null,
-    returnArrivalTime: flight.returnArrivalTime || null,
-    returnBookingReference: flight.returnBookingReference || null,
-    returnNotes: flight.returnNotes || null,
+    legs,
     price: flight.price ?? null,
   }
 }

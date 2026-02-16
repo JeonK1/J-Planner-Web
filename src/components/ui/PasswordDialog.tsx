@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Modal } from './Modal'
 import { Input } from './Input'
 import { Button } from './Button'
+import { MESSAGES } from '@/constants'
 
 interface PasswordDialogProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ export function PasswordDialog({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!password.trim()) {
-      setError('비밀번호를 입력해주세요.')
+      setError(MESSAGES.validation.requiredPassword)
       return
     }
 
@@ -30,7 +31,7 @@ export function PasswordDialog({
 
     const isValid = await onSubmit(password)
     if (!isValid) {
-      setError('비밀번호가 일치하지 않습니다.')
+      setError(MESSAGES.validation.passwordMismatch)
     }
     setIsSubmitting(false)
   }

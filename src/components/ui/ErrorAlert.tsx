@@ -27,7 +27,10 @@ export function ErrorAlert({ message, onDismiss, autoHideMs }: ErrorAlertProps) 
   if (!visible || !message) return null
 
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <div
+      role="alert"
+      className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+    >
       <div className="flex items-start justify-between gap-2">
         <span>{message}</span>
         {onDismiss && (
@@ -35,6 +38,7 @@ export function ErrorAlert({ message, onDismiss, autoHideMs }: ErrorAlertProps) 
             type="button"
             onClick={() => { setVisible(false); onDismiss() }}
             className="shrink-0 text-red-400 hover:text-red-600"
+            aria-label="오류 닫기"
           >
             &times;
           </button>
