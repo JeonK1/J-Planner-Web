@@ -2,39 +2,47 @@ import { create } from 'zustand'
 import { authenticatePlan } from '@/api'
 
 interface AuthState {
-  authenticatedPlanIds: Set<string>;
+  tokens: Map<string, string>;
 }
 
 interface AuthActions {
-  authenticate: (planId: string, password: string) => Promise<boolean>;
-  isAuthenticated: (planId: string) => boolean;
-  exitEditMode: (planId: string) => void;
+  authenticate: (accessCode: string, password: string) => Promise<boolean>;
+  isAuthenticated: (accessCode: string) => boolean;
+  exitEditMode: (accessCode: string) => void;
+  getToken: (accessCode: string) => string | undefined;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   (set, get) => ({
-    authenticatedPlanIds: new Set(),
+    tokens: new Map(),
 
-    authenticate: async (planId: string, password: string) => {
-      const isValid = await authenticatePlan(planId, password)
-      if (isValid) {
-        set((state) => ({
-          authenticatedPlanIds: new Set(state.authenticatedPlanIds).add(planId),
-        }))
+    authenticate: async (accessCode: string, password: string) => {
+      const token = await authenticatePlan(accessCode, password)
+      if (token) {
+        set((state) => {
+          const next = new Map(state.tokens)
+          next.set(accessCode, token)
+          return { tokens: next }
+        })
+        return true
       }
-      return isValid
+      return false
     },
 
-    isAuthenticated: (planId: string) => {
-      return get().authenticatedPlanIds.has(planId)
+    isAuthenticated: (accessCode: string) => {
+      return get().tokens.has(accessCode)
     },
 
-    exitEditMode: (planId: string) => {
+    exitEditMode: (accessCode: string) => {
       set((state) => {
-        const next = new Set(state.authenticatedPlanIds)
-        next.delete(planId)
-        return { authenticatedPlanIds: next }
+        const next = new Map(state.tokens)
+        next.delete(accessCode)
+        return { tokens: next }
       })
+    },
+
+    getToken: (accessCode: string) => {
+      return get().tokens.get(accessCode)
     },
   }),
 )

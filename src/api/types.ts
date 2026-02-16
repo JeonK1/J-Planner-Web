@@ -1,5 +1,4 @@
 export interface ApiTravelPlan {
-  id: number;
   accessCode: string;
   title: string;
   description: string;

@@ -1,7 +1,6 @@
 export const CONSTRAINTS = {
   plan: {
     titleMaxLength: 100,
-    accessCodeMaxLength: 50,
     passwordMinLength: 8,
     passwordMaxLength: 50,
     descriptionMaxLength: 100,

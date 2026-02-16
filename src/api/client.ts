@@ -42,10 +42,13 @@ export function dispatchSessionExpired() {
   window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: AUTH_EVENT_KEY }))
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, token?: string): Promise<T> {
   const headers: Record<string, string> = {}
   if (body) {
     headers['Content-Type'] = 'application/json'
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
   }
 
   let res: Response
@@ -53,7 +56,6 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch {
@@ -86,7 +88,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
-  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
-  del: <T>(path: string) => request<T>('DELETE', path),
+  post: <T>(path: string, body?: unknown, token?: string) => request<T>('POST', path, body, token),
+  put: <T>(path: string, body?: unknown, token?: string) => request<T>('PUT', path, body, token),
+  del: <T>(path: string, token?: string) => request<T>('DELETE', path, undefined, token),
 }

@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { usePlanStore } from '@/stores/usePlanStore'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { checkAccessCodeExists, ApiError } from '@/api'
 import { CONSTRAINTS, MESSAGES } from '@/constants'
 
 export function CreatePlanPage() {
@@ -12,7 +11,6 @@ export function CreatePlanPage() {
   const createPlan = usePlanStore((s) => s.createPlan)
   const authenticate = useAuthStore((s) => s.authenticate)
 
-  const [accessCode, setAccessCode] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [title, setTitle] = useState('')
@@ -22,25 +20,8 @@ export function CreatePlanPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const validate = async (): Promise<boolean> => {
+  const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
-
-    if (!accessCode.trim()) {
-      newErrors.accessCode = MESSAGES.validation.requiredAccessCode
-    } else if (accessCode.trim().length > CONSTRAINTS.plan.accessCodeMaxLength) {
-      newErrors.accessCode = MESSAGES.validation.accessCodeMaxLength
-    } else {
-      try {
-        const exists = await checkAccessCodeExists(accessCode.trim())
-        if (exists) {
-          newErrors.accessCode = MESSAGES.error.duplicateAccessCode
-        }
-      } catch (err) {
-        newErrors.accessCode = err instanceof ApiError && err.status === 429
-          ? MESSAGES.error.tooManyRequests
-          : MESSAGES.error.accessCodeCheckFailed
-      }
-    }
 
     if (!password) {
       newErrors.password = MESSAGES.validation.requiredPassword
@@ -73,15 +54,13 @@ export function CreatePlanPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    const isValid = await validate()
-    if (!isValid) {
+    if (!validate()) {
       setIsSubmitting(false)
       return
     }
 
     try {
       const plan = await createPlan({
-        accessCode: accessCode.trim(),
         password,
         title: title.trim(),
         description: description.trim(),
@@ -89,14 +68,10 @@ export function CreatePlanPage() {
         endDate,
       })
 
-      await authenticate(plan.id, password)
-      navigate(`/plan/${plan.id}`, { replace: true })
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'DUPLICATE_ACCESS_CODE') {
-        setErrors({ accessCode: MESSAGES.error.duplicateAccessCode })
-      } else {
-        setErrors({ accessCode: MESSAGES.error.serverError })
-      }
+      await authenticate(plan.accessCode, password)
+      navigate(`/plan/${plan.accessCode}`, { replace: true })
+    } catch {
+      setErrors({ form: MESSAGES.error.serverError })
       setIsSubmitting(false)
     }
   }
@@ -111,18 +86,10 @@ export function CreatePlanPage() {
           </p>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {errors.form && (
+            <p className="text-center text-sm text-red-500">{errors.form}</p>
+          )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              id="accessCode"
-              label="입장번호"
-              value={accessCode}
-              onChange={(e) => setAccessCode(e.target.value)}
-              placeholder="다른 사람이 입장할 코드"
-              error={errors.accessCode}
-              maxLength={CONSTRAINTS.plan.accessCodeMaxLength}
-              autoFocus
-            />
-            <div />
             <Input
               id="password"
               type="password"
@@ -132,6 +99,7 @@ export function CreatePlanPage() {
               placeholder="수정 시 필요한 비밀번호"
               error={errors.password}
               maxLength={CONSTRAINTS.plan.passwordMaxLength}
+              autoFocus
             />
             <Input
               id="passwordConfirm"
@@ -176,6 +144,7 @@ export function CreatePlanPage() {
               type="date"
               label="종료일"
               value={endDate}
+              min={startDate || undefined}
               onChange={(e) => setEndDate(e.target.value)}
               error={errors.endDate}
             />

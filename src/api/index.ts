@@ -1,11 +1,9 @@
 export { ApiError, NetworkError } from './client'
 export {
-  fetchPlanByAccessCode,
   fetchPlan,
   createPlan,
   updatePlan,
   deletePlan,
-  checkAccessCodeExists,
   authenticatePlan,
   addSection,
   updateSection,

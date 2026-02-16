@@ -2,32 +2,32 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { AUTH_EVENT_KEY } from '@/api/client'
 
-export function useEditMode(planId: string) {
+export function useEditMode(accessCode: string) {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
-  const authenticatedPlanIds = useAuthStore((s) => s.authenticatedPlanIds)
+  const tokens = useAuthStore((s) => s.tokens)
   const authenticate = useAuthStore((s) => s.authenticate)
   const exitEditMode = useAuthStore((s) => s.exitEditMode)
 
-  const isEditMode = authenticatedPlanIds.has(planId)
+  const isEditMode = tokens.has(accessCode)
 
   useEffect(() => {
     const handler = (event: Event) => {
       if (!(event instanceof CustomEvent) || event.detail !== AUTH_EVENT_KEY) return
-      if (authenticatedPlanIds.has(planId)) {
-        exitEditMode(planId)
+      if (tokens.has(accessCode)) {
+        exitEditMode(accessCode)
         setIsPasswordDialogOpen(true)
       }
     }
     window.addEventListener('auth:session-expired', handler)
     return () => window.removeEventListener('auth:session-expired', handler)
-  }, [planId, authenticatedPlanIds, exitEditMode])
+  }, [accessCode, tokens, exitEditMode])
 
   const requestEdit = () => {
     setIsPasswordDialogOpen(true)
   }
 
   const handlePasswordSubmit = async (password: string): Promise<boolean> => {
-    const isValid = await authenticate(planId, password)
+    const isValid = await authenticate(accessCode, password)
     if (isValid) {
       setIsPasswordDialogOpen(false)
     }
@@ -35,7 +35,7 @@ export function useEditMode(planId: string) {
   }
 
   const handleExitEdit = () => {
-    exitEditMode(planId)
+    exitEditMode(accessCode)
   }
 
   const closePasswordDialog = () => {

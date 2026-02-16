@@ -8,7 +8,7 @@ export function useAccessNumber() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
-  const loadPlanByAccessCode = usePlanStore((s) => s.loadPlanByAccessCode)
+  const loadPlan = usePlanStore((s) => s.loadPlan)
 
   const submit = async () => {
     const trimmed = accessCode.trim()
@@ -21,9 +21,9 @@ export function useAccessNumber() {
     setError('')
 
     try {
-      const plan = await loadPlanByAccessCode(trimmed)
+      const plan = await loadPlan(trimmed)
       if (plan) {
-        navigate(`/plan/${plan.id}`)
+        navigate(`/plan/${plan.accessCode}`)
       } else {
         const storeError = usePlanStore.getState().error
         setError(storeError ?? MESSAGES.error.accessCodeNotFound)

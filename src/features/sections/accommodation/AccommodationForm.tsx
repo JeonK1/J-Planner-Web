@@ -70,7 +70,7 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
         />
         <Input
           label="체크인"
-          type="date"
+          type="datetime-local"
           value={acc.checkIn}
           onChange={(e) => update({ checkIn: e.target.value })}
           error={dateError ?? undefined}
@@ -78,7 +78,7 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
         />
         <Input
           label="체크아웃"
-          type="date"
+          type="datetime-local"
           value={acc.checkOut}
           onChange={(e) => update({ checkOut: e.target.value })}
           min={acc.checkIn || undefined}

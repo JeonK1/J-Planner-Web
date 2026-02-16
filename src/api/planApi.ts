@@ -2,22 +2,13 @@ import { api, ApiError } from './client'
 import type { ApiTravelPlan, ApiPlanSection } from './types'
 import { mapApiPlanToDomain, mapApiSectionToDomain, mapDomainFlightToApi, mapDomainAccommodationToApi } from './mappers'
 import type { TravelPlan, PlanSection, SectionType, FlightFormData, AccommodationInfo } from '@/types'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 // --- Plan ---
 
-export async function fetchPlanByAccessCode(accessCode: string): Promise<TravelPlan | null> {
+export async function fetchPlan(accessCode: string): Promise<TravelPlan | null> {
   try {
-    const data = await api.get<ApiTravelPlan>(`/plans?accessCode=${encodeURIComponent(accessCode)}`)
-    return mapApiPlanToDomain(data)
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) return null
-    throw e
-  }
-}
-
-export async function fetchPlan(planId: string): Promise<TravelPlan | null> {
-  try {
-    const data = await api.get<ApiTravelPlan>(`/plans/${planId}`)
+    const data = await api.get<ApiTravelPlan>(`/plans/${encodeURIComponent(accessCode)}`)
     return mapApiPlanToDomain(data)
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null
@@ -26,7 +17,6 @@ export async function fetchPlan(planId: string): Promise<TravelPlan | null> {
 }
 
 export interface CreatePlanInput {
-  accessCode: string;
   password: string;
   title: string;
   description?: string;
@@ -46,26 +36,23 @@ export interface UpdatePlanInput {
   endDate?: string;
 }
 
-export async function updatePlan(planId: string, input: UpdatePlanInput): Promise<TravelPlan> {
-  const data = await api.put<ApiTravelPlan>(`/plans/${planId}`, input)
+export async function updatePlan(accessCode: string, input: UpdatePlanInput): Promise<TravelPlan> {
+  const token = useAuthStore.getState().getToken(accessCode)
+  const data = await api.put<ApiTravelPlan>(`/plans/${accessCode}`, input, token)
   return mapApiPlanToDomain(data)
 }
 
-export async function deletePlan(planId: string): Promise<void> {
-  await api.del(`/plans/${planId}`)
+export async function deletePlan(accessCode: string): Promise<void> {
+  const token = useAuthStore.getState().getToken(accessCode)
+  await api.del(`/plans/${accessCode}`, token)
 }
 
-export async function checkAccessCodeExists(accessCode: string): Promise<boolean> {
-  const data = await api.get<{ exists: boolean }>(`/plans/check-access-code?accessCode=${encodeURIComponent(accessCode)}`)
-  return data.exists
-}
-
-export async function authenticatePlan(planId: string, password: string): Promise<boolean> {
+export async function authenticatePlan(accessCode: string, password: string): Promise<string | null> {
   try {
-    const data = await api.post<{ authenticated: boolean }>(`/plans/${planId}/auth`, { password })
-    return data.authenticated
+    const data = await api.post<{ authenticated: boolean; token: string }>(`/plans/${accessCode}/auth`, { password })
+    return data.authenticated ? data.token : null
   } catch (e) {
-    if (e instanceof ApiError && e.status === 401) return false
+    if (e instanceof ApiError && e.status === 401) return null
     throw e
   }
 }
@@ -73,15 +60,16 @@ export async function authenticatePlan(planId: string, password: string): Promis
 // --- Section ---
 
 export async function addSection(
-  planId: string,
+  accessCode: string,
   title: string,
   sectionType: SectionType,
 ): Promise<PlanSection> {
+  const token = useAuthStore.getState().getToken(accessCode)
   const apiType = sectionType.toUpperCase() as 'FLIGHT' | 'ACCOMMODATION'
-  const data = await api.post<ApiPlanSection>(`/plans/${planId}/sections`, {
+  const data = await api.post<ApiPlanSection>(`/plans/${accessCode}/sections`, {
     title,
     sectionType: apiType,
-  })
+  }, token)
   return mapApiSectionToDomain(data)
 }
 
@@ -93,25 +81,28 @@ export interface UpdateSectionInput {
 }
 
 export async function updateSection(
-  planId: string,
+  accessCode: string,
   sectionId: string,
   input: UpdateSectionInput,
 ): Promise<PlanSection> {
+  const token = useAuthStore.getState().getToken(accessCode)
   const body: Record<string, unknown> = {}
   if (input.title !== undefined) body.title = input.title
   if (input.confirmed !== undefined) body.confirmed = input.confirmed
   if (input.flightInfo) body.flightInfo = mapDomainFlightToApi(input.flightInfo)
   if (input.accommodationInfo) body.accommodationInfo = mapDomainAccommodationToApi(input.accommodationInfo)
 
-  const data = await api.put<ApiPlanSection>(`/plans/${planId}/sections/${sectionId}`, body)
+  const data = await api.put<ApiPlanSection>(`/plans/${accessCode}/sections/${sectionId}`, body, token)
   return mapApiSectionToDomain(data)
 }
 
-export async function reorderSections(planId: string, sectionIds: number[]): Promise<PlanSection[]> {
-  const data = await api.put<ApiPlanSection[]>(`/plans/${planId}/sections/reorder`, { sectionIds })
+export async function reorderSections(accessCode: string, sectionIds: number[]): Promise<PlanSection[]> {
+  const token = useAuthStore.getState().getToken(accessCode)
+  const data = await api.put<ApiPlanSection[]>(`/plans/${accessCode}/sections/reorder`, { sectionIds }, token)
   return data.map(mapApiSectionToDomain)
 }
 
-export async function deleteSection(planId: string, sectionId: string): Promise<void> {
-  await api.del(`/plans/${planId}/sections/${sectionId}`)
+export async function deleteSection(accessCode: string, sectionId: string): Promise<void> {
+  const token = useAuthStore.getState().getToken(accessCode)
+  await api.del(`/plans/${accessCode}/sections/${sectionId}`, token)
 }

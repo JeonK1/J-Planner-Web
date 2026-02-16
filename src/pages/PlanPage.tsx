@@ -8,7 +8,7 @@ import { ConnectionError } from '@/components/ui/ConnectionError'
 import { usePlanStore } from '@/stores/usePlanStore'
 
 export function PlanPage() {
-  const { plan, isLoading, planId, error } = usePlan()
+  const { plan, isLoading, accessCode, error } = usePlan()
   const loadPlan = usePlanStore((s) => s.loadPlan)
   const {
     isEditMode,
@@ -17,7 +17,7 @@ export function PlanPage() {
     handlePasswordSubmit,
     handleExitEdit,
     closePasswordDialog,
-  } = useEditMode(planId)
+  } = useEditMode(accessCode)
 
   if (isLoading) {
     return (
@@ -28,7 +28,7 @@ export function PlanPage() {
   }
 
   if (error && !plan) {
-    return <ConnectionError message={error} onRetry={() => loadPlan(planId)} />
+    return <ConnectionError message={error} onRetry={() => loadPlan(accessCode)} />
   }
 
   if (!plan) {

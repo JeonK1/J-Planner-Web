@@ -93,6 +93,7 @@ export function PlanHeader({
                 label="종료일"
                 type="date"
                 value={endDate}
+                min={startDate || undefined}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>

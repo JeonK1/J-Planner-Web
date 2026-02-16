@@ -3,7 +3,7 @@ import type { TravelPlan, PlanSection, FlightInfo, AccommodationInfo, SectionTyp
 
 export function mapApiPlanToDomain(api: ApiTravelPlan): TravelPlan {
   return {
-    id: String(api.id),
+    accessCode: api.accessCode,
     title: api.title,
     description: api.description ?? '',
     startDate: api.startDate ?? '',

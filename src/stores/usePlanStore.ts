@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type { TravelPlan, SectionType } from '@/types'
 import { MESSAGES } from '@/constants'
 import {
-  fetchPlanByAccessCode,
   fetchPlan,
   createPlan as apiCreatePlan,
   updatePlan,
@@ -20,8 +19,7 @@ interface PlanState {
 }
 
 interface PlanActions {
-  loadPlanByAccessCode: (accessCode: string) => Promise<TravelPlan | null>;
-  loadPlan: (planId: string) => Promise<TravelPlan | null>;
+  loadPlan: (accessCode: string) => Promise<TravelPlan | null>;
   createPlan: (input: CreatePlanInput) => Promise<TravelPlan>;
   updatePlanInfo: (updates: Partial<Pick<TravelPlan, 'title' | 'description' | 'startDate' | 'endDate'>>) => Promise<void>;
   addSection: (type: SectionType, title: string) => Promise<void>;
@@ -36,26 +34,10 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadPlanByAccessCode: async (accessCode: string) => {
+  loadPlan: async (accessCode: string) => {
     set({ isLoading: true, error: null })
     try {
-      const plan = await fetchPlanByAccessCode(accessCode)
-      if (plan) {
-        set({ currentPlan: plan, isLoading: false })
-      } else {
-        set({ error: MESSAGES.error.accessCodeNotFound, isLoading: false })
-      }
-      return plan
-    } catch {
-      set({ error: MESSAGES.error.network, isLoading: false })
-      return null
-    }
-  },
-
-  loadPlan: async (planId: string) => {
-    set({ isLoading: true, error: null })
-    try {
-      const plan = await fetchPlan(planId)
+      const plan = await fetchPlan(accessCode)
       if (plan) {
         set({ currentPlan: plan, isLoading: false })
       } else {
@@ -78,7 +60,7 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     const { currentPlan } = get()
     if (!currentPlan) return
 
-    const updatedPlan = await updatePlan(currentPlan.id, {
+    const updatedPlan = await updatePlan(currentPlan.accessCode, {
       title: updates.title ?? currentPlan.title,
       description: updates.description ?? currentPlan.description,
       startDate: updates.startDate ?? currentPlan.startDate,
@@ -91,7 +73,7 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     const { currentPlan } = get()
     if (!currentPlan) return
 
-    const newSection = await apiAddSection(currentPlan.id, title, type)
+    const newSection = await apiAddSection(currentPlan.accessCode, title, type)
     set((state) => {
       if (!state.currentPlan) return state
       return {
@@ -107,7 +89,7 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     const { currentPlan } = get()
     if (!currentPlan) return
 
-    const updatedSection = await apiUpdateSection(currentPlan.id, sectionId, input)
+    const updatedSection = await apiUpdateSection(currentPlan.accessCode, sectionId, input)
     set((state) => {
       if (!state.currentPlan) return state
       return {
@@ -126,7 +108,7 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     if (!currentPlan) return
 
     const numericIds = sectionIds.map(Number)
-    const updatedSections = await apiReorderSections(currentPlan.id, numericIds)
+    const updatedSections = await apiReorderSections(currentPlan.accessCode, numericIds)
     set((state) => {
       if (!state.currentPlan) return state
       return {
@@ -142,7 +124,7 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
     const { currentPlan } = get()
     if (!currentPlan) return
 
-    await apiDeleteSection(currentPlan.id, sectionId)
+    await apiDeleteSection(currentPlan.accessCode, sectionId)
     set((state) => {
       if (!state.currentPlan) return state
       return {

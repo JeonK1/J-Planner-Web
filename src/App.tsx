@@ -31,7 +31,7 @@ function App() {
             <Route element={<RootLayout />}>
               <Route path="/" element={<EntryPage />} />
               <Route path="/create" element={<CreatePlanPage />} />
-              <Route path="/plan/:planId" element={<PlanPage />} />
+              <Route path="/plan/:accessCode" element={<PlanPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
