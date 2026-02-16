@@ -9,6 +9,7 @@ export {
   authenticatePlan,
   addSection,
   updateSection,
+  reorderSections,
   deleteSection,
 } from './planApi'
 export type { CreatePlanInput, UpdatePlanInput, UpdateSectionInput } from './planApi'

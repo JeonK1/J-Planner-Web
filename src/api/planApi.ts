@@ -107,6 +107,11 @@ export async function updateSection(
   return mapApiSectionToDomain(data)
 }
 
+export async function reorderSections(planId: string, sectionIds: number[]): Promise<PlanSection[]> {
+  const data = await api.put<ApiPlanSection[]>(`/plans/${planId}/sections/reorder`, { sectionIds })
+  return data.map(mapApiSectionToDomain)
+}
+
 export async function deleteSection(planId: string, sectionId: string): Promise<void> {
   await api.del(`/plans/${planId}/sections/${sectionId}`)
 }

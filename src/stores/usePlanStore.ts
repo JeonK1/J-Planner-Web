@@ -7,6 +7,7 @@ import {
   updatePlan,
   addSection as apiAddSection,
   updateSection as apiUpdateSection,
+  reorderSections as apiReorderSections,
   deleteSection as apiDeleteSection,
 } from '@/api'
 import type { CreatePlanInput, UpdateSectionInput } from '@/api'
@@ -24,6 +25,7 @@ interface PlanActions {
   updatePlanInfo: (updates: Partial<Pick<TravelPlan, 'title' | 'description' | 'startDate' | 'endDate'>>) => Promise<void>;
   addSection: (type: SectionType, title: string) => Promise<void>;
   updateSection: (sectionId: string, input: UpdateSectionInput) => Promise<void>;
+  reorderSections: (sectionIds: string[]) => Promise<void>;
   removeSection: (sectionId: string) => Promise<void>;
   clearPlan: () => void;
 }
@@ -108,6 +110,20 @@ export const usePlanStore = create<PlanState & PlanActions>()((set, get) => ({
         sections: currentPlan.sections.map((s) =>
           s.id === sectionId ? updatedSection : s,
         ),
+      },
+    })
+  },
+
+  reorderSections: async (sectionIds: string[]) => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const numericIds = sectionIds.map(Number)
+    const updatedSections = await apiReorderSections(currentPlan.id, numericIds)
+    set({
+      currentPlan: {
+        ...currentPlan,
+        sections: updatedSections,
       },
     })
   },

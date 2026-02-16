@@ -6,6 +6,7 @@ interface ExpandableSectionProps {
   defaultExpanded?: boolean;
   children: ReactNode;
   className?: string;
+  headerLeft?: ReactNode;
   headerRight?: ReactNode;
 }
 
@@ -14,6 +15,7 @@ export function ExpandableSection({
   defaultExpanded = false,
   children,
   className,
+  headerLeft,
   headerRight,
 }: ExpandableSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
@@ -25,7 +27,14 @@ export function ExpandableSection({
         onClick={() => setIsExpanded((prev) => !prev)}
         className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50"
       >
-        <span className="text-base font-semibold text-gray-900">{title}</span>
+        <div className="flex items-center gap-2">
+          {headerLeft && (
+            <div onClick={(e) => e.stopPropagation()}>
+              {headerLeft}
+            </div>
+          )}
+          <span className="text-base font-semibold text-gray-900">{title}</span>
+        </div>
         <div className="flex items-center gap-2">
           {headerRight && (
             <div onClick={(e) => e.stopPropagation()}>

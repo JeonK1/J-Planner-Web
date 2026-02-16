@@ -1,7 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 import type { PlanSection, SectionType } from '@/types'
+import { ApiError } from '@/api'
 import type { UpdateSectionInput } from '@/api'
 import { ExpandableSection } from '@/components/ui/ExpandableSection'
+import { DraggableList } from '@/components/ui/DraggableList'
 import { Button } from '@/components/ui/Button'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { getSectionRenderer } from '@/features/sections/registry'
@@ -29,9 +31,11 @@ interface PlanSectionListProps {
 function SectionItem({
   section,
   isEditMode,
+  dragHandle,
 }: {
   section: PlanSection;
   isEditMode: boolean;
+  dragHandle: ReactNode;
 }) {
   const renderer = getSectionRenderer(section.type)
   const updateSection = usePlanStore((s) => s.updateSection)
@@ -50,8 +54,12 @@ function SectionItem({
     setError(null)
     try {
       await updateSection(section.id, { ...input, confirmed: localConfirmed })
-    } catch {
-      setError('저장에 실패했습니다. 다시 시도해주세요.')
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setError(e.message)
+      } else {
+        setError('저장에 실패했습니다. 다시 시도해주세요.')
+      }
     }
   }
 
@@ -67,7 +75,7 @@ function SectionItem({
     }
   }
 
-  const confirmedHeaderRight = isEditMode ? (
+  const headerRight = isEditMode ? (
     <label className="flex items-center gap-1.5 text-sm">
       <input
         type="checkbox"
@@ -88,7 +96,12 @@ function SectionItem({
   )
 
   return (
-    <ExpandableSection title={formatSectionTitle(section)} defaultExpanded headerRight={confirmedHeaderRight}>
+    <ExpandableSection
+      title={formatSectionTitle(section)}
+      defaultExpanded
+      headerLeft={dragHandle}
+      headerRight={headerRight}
+    >
       {error && (
         <div className="mb-3">
           <ErrorAlert message={error} onDismiss={dismissError} autoHideMs={5000} />
@@ -117,11 +130,27 @@ function SectionItem({
 
 export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) {
   const addSection = usePlanStore((s) => s.addSection)
+  const reorderSections = usePlanStore((s) => s.reorderSections)
   const [isAdding, setIsAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  const [reorderError, setReorderError] = useState<string | null>(null)
   const sorted = [...sections].sort((a, b) => a.order - b.order)
 
   const dismissAddError = useCallback(() => setAddError(null), [])
+  const dismissReorderError = useCallback(() => setReorderError(null), [])
+
+  const handleReorder = async (reordered: PlanSection[]) => {
+    setReorderError(null)
+    try {
+      await reorderSections(reordered.map((s) => s.id))
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setReorderError(e.message)
+      } else {
+        setReorderError('순서 변경에 실패했습니다. 다시 시도해주세요.')
+      }
+    }
+  }
 
   const handleAddSection = async (type: 'flight' | 'accommodation', title: string) => {
     setIsAdding(true)
@@ -144,13 +173,22 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
 
   return (
     <div className="flex flex-col gap-4">
-      {sorted.map((section) => (
-        <SectionItem
-          key={section.id}
-          section={section}
-          isEditMode={isEditMode}
-        />
-      ))}
+      {reorderError && (
+        <ErrorAlert message={reorderError} onDismiss={dismissReorderError} autoHideMs={5000} />
+      )}
+      <DraggableList
+        items={sorted}
+        keyExtractor={(s) => s.id}
+        enabled={isEditMode}
+        onReorder={handleReorder}
+        renderItem={(section, _index, dragHandle) => (
+          <SectionItem
+            section={section}
+            isEditMode={isEditMode}
+            dragHandle={dragHandle}
+          />
+        )}
+      />
       {isEditMode && (
         <>
           {addError && (

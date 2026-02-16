@@ -13,11 +13,6 @@ type TimelineEvent = {
   endMs: number;
 }
 
-type FlightRow = {
-  sectionId: string;
-  segments: TimelineEvent[];
-}
-
 const DAY_WIDTH = 80
 const DAY_MS = 24 * 60 * 60 * 1000
 const PADDING_DAYS = 14
@@ -29,29 +24,29 @@ function parseDate(s: string): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-function extractFlightRows(sections: PlanSection[]): FlightRow[] {
-  const rows: FlightRow[] = []
+function extractFlightEvents(sections: PlanSection[]): TimelineEvent[] {
+  const events: TimelineEvent[] = []
 
   for (const section of sections) {
-    if (section.type !== 'flight' || !section.flightInfo) continue
+    if (section.type !== 'flight' || !section.flightInfo || !section.confirmed) continue
     const f = section.flightInfo
     const dep = parseDate(f.departureTime)
     const arr = parseDate(f.arrivalTime)
     if (!dep || !arr) continue
 
-    const segments: TimelineEvent[] = [{
+    events.push({
       id: `${section.id}-outbound`,
       type: 'flight',
       label: f.flightNumber || f.airline || section.title,
       startMs: dep.getTime(),
       endMs: arr.getTime(),
-    }]
+    })
 
     if (f.tripType === 'roundTrip') {
       const rDep = parseDate(f.returnDepartureTime ?? '')
       const rArr = parseDate(f.returnArrivalTime ?? '')
       if (rDep && rArr) {
-        segments.push({
+        events.push({
           id: `${section.id}-return`,
           type: 'flight',
           label: f.returnFlightNumber || f.returnAirline || section.title,
@@ -60,18 +55,16 @@ function extractFlightRows(sections: PlanSection[]): FlightRow[] {
         })
       }
     }
-
-    rows.push({ sectionId: section.id, segments })
   }
 
-  return rows
+  return events
 }
 
 function extractAccEvents(sections: PlanSection[]): TimelineEvent[] {
   const events: TimelineEvent[] = []
 
   for (const section of sections) {
-    if (section.type !== 'accommodation' || !section.accommodationInfo) continue
+    if (section.type !== 'accommodation' || !section.accommodationInfo || !section.confirmed) continue
     const a = section.accommodationInfo
     const checkIn = parseDate(a.checkIn)
     const checkOut = parseDate(a.checkOut)
@@ -140,7 +133,7 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
     return getDaysBetween(timelineStart, timelineEnd)
   }, [timelineStart, timelineEnd])
 
-  const flightRows = useMemo(() => extractFlightRows(plan.sections), [plan.sections])
+  const flightEvents = useMemo(() => extractFlightEvents(plan.sections), [plan.sections])
   const accEvents = useMemo(() => extractAccEvents(plan.sections), [plan.sections])
 
   const today = useMemo(() => new Date(), [])
@@ -192,7 +185,9 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
     return null
   }
 
-  const rowCount = flightRows.length + accEvents.length
+  const hasFlights = flightEvents.length > 0
+  const hasAccommodations = accEvents.length > 0
+  const rowCount = (hasFlights ? 1 : 0) + (hasAccommodations ? 1 : 0)
 
   return (
     <div className="mb-6 rounded-lg border border-gray-200 bg-white">
@@ -249,31 +244,23 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
               )
             })}
 
-            {/* 비행기 이벤트: 1섹션 = 1줄, 세그먼트(출국/입국)를 같은 줄에 배치 */}
-            {flightRows.map((row, rowIdx) => {
-              const top = 4 + rowIdx * 28
-              const elements: React.ReactNode[] = []
-
-              row.segments.forEach((seg) => {
-                const { left, width } = getEventStyle(seg)
-                elements.push(
-                  <div
-                    key={seg.id}
-                    className="absolute flex items-center rounded-md bg-blue-100 px-2 text-[11px] font-medium text-blue-700 shadow-sm"
-                    style={{ left, width, top, height: 22 }}
-                    title={seg.label}
-                  >
-                    <span>&#9992;</span>
-                  </div>,
-                )
-
-              })
-
-              return elements
+            {/* 비행기 이벤트: 모든 세그먼트를 하나의 줄에 배치 */}
+            {flightEvents.map((seg) => {
+              const { left, width } = getEventStyle(seg)
+              return (
+                <div
+                  key={seg.id}
+                  className="absolute flex items-center rounded-md bg-blue-100 px-2 text-[11px] font-medium text-blue-700 shadow-sm"
+                  style={{ left, width, top: 4, height: 22 }}
+                  title={seg.label}
+                >
+                  <span>&#9992;</span>
+                </div>
+              )
             })}
 
-            {/* 숙소 이벤트 */}
-            {accEvents.map((event, i) => {
+            {/* 숙소 이벤트: 모든 숙소를 하나의 줄에 배치 */}
+            {accEvents.map((event) => {
               const { left, width } = getEventStyle(event)
               return (
                 <div
@@ -282,7 +269,7 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
                   style={{
                     left,
                     width,
-                    top: 4 + (flightRows.length + i) * 28,
+                    top: 4 + (hasFlights ? 1 : 0) * 28,
                     height: 22,
                   }}
                   title={event.label}

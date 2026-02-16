@@ -31,6 +31,7 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
     price: initial?.price,
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const isRoundTrip = flight.tripType === 'roundTrip'
 
@@ -57,6 +58,15 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
   }
 
   const handleSave = async () => {
+    setValidationError(null)
+    if (flight.departureTime && flight.arrivalTime && flight.departureTime >= flight.arrivalTime) {
+      setValidationError('출발시간이 도착시간보다 같거나 늦을 수 없습니다.')
+      return
+    }
+    if (isRoundTrip && flight.returnDepartureTime && flight.returnArrivalTime && flight.returnDepartureTime >= flight.returnArrivalTime) {
+      setValidationError('귀국편 출발시간이 도착시간보다 같거나 늦을 수 없습니다.')
+      return
+    }
     setIsSaving(true)
     await onSave({ title, flightInfo: flight })
     setIsSaving(false)
@@ -229,6 +239,9 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
         <ImageGallery />
       </div>
 
+      {validationError && (
+        <p className="text-sm text-red-600">{validationError}</p>
+      )}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving} className="text-sm">
           {isSaving ? '저장 중...' : '저장'}

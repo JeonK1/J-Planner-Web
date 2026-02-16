@@ -19,12 +19,18 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
     price: initial?.price,
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const update = (updates: Partial<Omit<AccommodationInfo, 'id'>>) => {
     setAcc((prev) => ({ ...prev, ...updates }))
   }
 
   const handleSave = async () => {
+    setValidationError(null)
+    if (acc.checkIn && acc.checkOut && acc.checkIn >= acc.checkOut) {
+      setValidationError('체크인 날짜가 체크아웃 날짜보다 같거나 늦을 수 없습니다.')
+      return
+    }
     setIsSaving(true)
     await onSave({ title, accommodationInfo: acc })
     setIsSaving(false)
@@ -100,6 +106,9 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
         <ImageGallery />
       </div>
 
+      {validationError && (
+        <p className="text-sm text-red-600">{validationError}</p>
+      )}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving} className="text-sm">
           {isSaving ? '저장 중...' : '저장'}
