@@ -80,6 +80,7 @@ export function PlanHeader({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="간략한 설명을 입력하세요"
+              maxLength={CONSTRAINTS.plan.descriptionMaxLength}
             />
             <div className="grid grid-cols-2 gap-3">
               <Input

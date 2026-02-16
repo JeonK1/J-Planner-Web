@@ -2,15 +2,19 @@ import { MESSAGES } from '@/constants'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
+export const AUTH_EVENT_KEY = Symbol('auth-session-expired')
+
 export class ApiError extends Error {
   code: string
   status: number
+  retryAfter?: number
 
-  constructor(code: string, message: string, status: number) {
+  constructor(code: string, message: string, status: number, retryAfter?: number) {
     super(message)
     this.name = 'ApiError'
     this.code = code
     this.status = status
+    this.retryAfter = retryAfter
   }
 }
 
@@ -19,6 +23,23 @@ export class NetworkError extends Error {
     super(message)
     this.name = 'NetworkError'
   }
+}
+
+const STATUS_MESSAGE_MAP: Record<number, string> = {
+  400: '잘못된 요청입니다.',
+  401: '인증에 실패했습니다.',
+  403: '세션이 만료되었습니다.',
+  404: '요청한 리소스를 찾을 수 없습니다.',
+  429: MESSAGES.error.tooManyRequests,
+}
+
+function getSafeErrorMessage(status: number): string {
+  if (status >= 500) return MESSAGES.error.serverError
+  return STATUS_MESSAGE_MAP[status] ?? MESSAGES.error.unknown
+}
+
+export function dispatchSessionExpired() {
+  window.dispatchEvent(new CustomEvent('auth:session-expired', { detail: AUTH_EVENT_KEY }))
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -41,18 +62,19 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (!res.ok) {
     let code = 'UNKNOWN_ERROR'
-    let message = MESSAGES.error.unknown
     try {
       const err = await res.json()
       code = err.code ?? code
-      message = err.message ?? message
     } catch {
-      // JSON 파싱 실패 시 기본 에러 사용
+      // JSON 파싱 실패 시 기본 에러 코드 사용
     }
     if (res.status === 403) {
-      window.dispatchEvent(new CustomEvent('auth:session-expired'))
+      dispatchSessionExpired()
     }
-    throw new ApiError(code, message, res.status)
+    const retryAfter = res.status === 429
+      ? Number(res.headers.get('Retry-After')) || undefined
+      : undefined
+    throw new ApiError(code, getSafeErrorMessage(res.status), res.status, retryAfter)
   }
 
   if (res.status === 204) {

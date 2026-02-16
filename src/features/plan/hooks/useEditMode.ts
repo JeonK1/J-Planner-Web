@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { AUTH_EVENT_KEY } from '@/api/client'
 
 export function useEditMode(planId: string) {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
@@ -10,7 +11,8 @@ export function useEditMode(planId: string) {
   const isEditMode = authenticatedPlanIds.has(planId)
 
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
+      if (!(event instanceof CustomEvent) || event.detail !== AUTH_EVENT_KEY) return
       if (authenticatedPlanIds.has(planId)) {
         exitEditMode(planId)
         setIsPasswordDialogOpen(true)

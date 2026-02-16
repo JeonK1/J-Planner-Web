@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { SectionFormProps } from '../types'
 import type { AccommodationInfo } from '@/types'
 import { Input } from '@/components/ui/Input'
@@ -23,6 +24,13 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
       },
       onSave,
     )
+
+  const dateError = useMemo(() => {
+    if (acc.checkIn && acc.checkOut && acc.checkIn >= acc.checkOut) {
+      return MESSAGES.validation.accommodationDateRange
+    }
+    return null
+  }, [acc.checkIn, acc.checkOut])
 
   const handleSave = () => {
     save(
@@ -65,12 +73,16 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
           type="date"
           value={acc.checkIn}
           onChange={(e) => update({ checkIn: e.target.value })}
+          error={dateError ?? undefined}
+          errorBorderOnly
         />
         <Input
           label="체크아웃"
           type="date"
           value={acc.checkOut}
           onChange={(e) => update({ checkOut: e.target.value })}
+          min={acc.checkIn || undefined}
+          error={dateError ?? undefined}
         />
         <Input
           label="예약번호"

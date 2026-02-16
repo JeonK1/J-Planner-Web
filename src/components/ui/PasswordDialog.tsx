@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react'
 import { Modal } from './Modal'
 import { Input } from './Input'
 import { Button } from './Button'
-import { MESSAGES } from '@/constants'
+import { ApiError } from '@/api'
+import { CONSTRAINTS, MESSAGES } from '@/constants'
 
 interface PasswordDialogProps {
   isOpen: boolean;
@@ -18,6 +19,34 @@ export function PasswordDialog({
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [countdown, setCountdown] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return clearTimer
+  }, [clearTimer])
+
+  const startCountdown = useCallback((seconds: number) => {
+    clearTimer()
+    setCountdown(seconds)
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearTimer()
+          setError('')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }, [clearTimer])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -29,9 +58,19 @@ export function PasswordDialog({
     setIsSubmitting(true)
     setError('')
 
-    const isValid = await onSubmit(password)
-    if (!isValid) {
-      setError(MESSAGES.validation.passwordMismatch)
+    try {
+      const isValid = await onSubmit(password)
+      if (!isValid) {
+        setError(MESSAGES.validation.passwordMismatch)
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        const seconds = err.retryAfter ?? 60
+        setError(`${MESSAGES.error.tooManyRequests} (${seconds}초)`)
+        startCountdown(seconds)
+      } else {
+        setError(MESSAGES.error.unknown)
+      }
     }
     setIsSubmitting(false)
   }
@@ -39,8 +78,12 @@ export function PasswordDialog({
   const handleClose = () => {
     setPassword('')
     setError('')
+    setCountdown(0)
+    clearTimer()
     onClose()
   }
+
+  const isDisabled = isSubmitting || countdown > 0
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="수정 권한 인증">
@@ -52,7 +95,8 @@ export function PasswordDialog({
           placeholder="비밀번호를 입력하세요"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          error={error}
+          error={countdown > 0 ? `${MESSAGES.error.tooManyRequests} (${countdown}초)` : error}
+          maxLength={CONSTRAINTS.plan.passwordMaxLength}
           autoFocus
         />
         <div className="flex justify-end gap-2">
@@ -65,9 +109,9 @@ export function PasswordDialog({
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isDisabled}
           >
-            {isSubmitting ? '확인 중...' : '확인'}
+            {isSubmitting ? '확인 중...' : countdown > 0 ? `${countdown}초 후 재시도` : '확인'}
           </Button>
         </div>
       </form>

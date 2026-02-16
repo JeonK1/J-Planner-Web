@@ -4,11 +4,13 @@ import { cn } from '@/lib/cn'
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  errorBorderOnly?: boolean;
 }
 
 export function Input({
   label,
   error,
+  errorBorderOnly,
   className,
   id: externalId,
   ...props
@@ -41,7 +43,7 @@ export function Input({
         )}
         {...props}
       />
-      {error && (
+      {error && !errorBorderOnly && (
         <p id={errorId} className="text-xs text-red-500">{error}</p>
       )}
     </div>

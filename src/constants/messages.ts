@@ -13,6 +13,7 @@ export const MESSAGES = {
     accessCodeCheckFailed: '입장번호 확인에 실패했습니다.',
     duplicateAccessCode: '이미 사용 중인 입장번호입니다.',
     sessionExpired: '인증이 만료되었습니다. 비밀번호를 다시 입력해주세요.',
+    tooManyRequests: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
   },
   validation: {
     requiredAccessCode: '입장번호를 입력해주세요.',
@@ -22,11 +23,13 @@ export const MESSAGES = {
     requiredStartDate: '시작일을 선택해주세요.',
     requiredEndDate: '종료일을 선택해주세요.',
     endDateBeforeStart: '종료일은 시작일 이후여야 합니다.',
+    flightTimeRange: '출발시간이 도착시간보다 같거나 늦을 수 없습니다.',
     flightLegTimeRange: (legIndex: number) =>
       `구간 ${legIndex + 1}의 출발시간이 도착시간보다 같거나 늦을 수 없습니다.` as const,
     accommodationDateRange: '체크인 날짜가 체크아웃 날짜보다 같거나 늦을 수 없습니다.',
     accessCodeMaxLength: '입장번호는 최대 50자까지 입력할 수 있습니다.',
-    passwordMinLength: '비밀번호는 최소 4자 이상이어야 합니다.',
+    passwordMinLength: '비밀번호는 최소 8자 이상이어야 합니다.',
+    descriptionMaxLength: '설명은 최대 100자까지 입력할 수 있습니다.',
     titleMaxLength: '제목은 최대 100자까지 입력할 수 있습니다.',
     sectionTitleMaxLength: '섹션 제목은 최대 200자까지 입력할 수 있습니다.',
   },

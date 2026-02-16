@@ -35,8 +35,10 @@ export function CreatePlanPage() {
         if (exists) {
           newErrors.accessCode = MESSAGES.error.duplicateAccessCode
         }
-      } catch {
-        newErrors.accessCode = MESSAGES.error.accessCodeCheckFailed
+      } catch (err) {
+        newErrors.accessCode = err instanceof ApiError && err.status === 429
+          ? MESSAGES.error.tooManyRequests
+          : MESSAGES.error.accessCodeCheckFailed
       }
     }
 
@@ -129,6 +131,7 @@ export function CreatePlanPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="수정 시 필요한 비밀번호"
               error={errors.password}
+              maxLength={CONSTRAINTS.plan.passwordMaxLength}
             />
             <Input
               id="passwordConfirm"
@@ -138,6 +141,7 @@ export function CreatePlanPage() {
               onChange={(e) => setPasswordConfirm(e.target.value)}
               placeholder="비밀번호를 다시 입력"
               error={errors.passwordConfirm}
+              maxLength={CONSTRAINTS.plan.passwordMaxLength}
             />
           </div>
           <hr className="border-gray-200" />
@@ -156,6 +160,7 @@ export function CreatePlanPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="간략한 여행 설명 (선택)"
+            maxLength={CONSTRAINTS.plan.descriptionMaxLength}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input

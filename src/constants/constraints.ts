@@ -2,7 +2,9 @@ export const CONSTRAINTS = {
   plan: {
     titleMaxLength: 100,
     accessCodeMaxLength: 50,
-    passwordMinLength: 4,
+    passwordMinLength: 8,
+    passwordMaxLength: 50,
+    descriptionMaxLength: 100,
     sectionTitleMaxLength: 200,
   },
   flightLeg: {

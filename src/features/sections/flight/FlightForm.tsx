@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { SectionFormProps } from '../types'
 import type { FlightFormData, FlightLegFormData, TripType } from '@/types'
 import { Input } from '@/components/ui/Input'
@@ -53,6 +54,15 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
     )
 
   const isRoundTrip = flight.tripType === 'roundTrip'
+
+  const legTimeErrors = useMemo(() => {
+    return flight.legs.map((leg) => {
+      if (leg.departureTime && leg.arrivalTime && leg.departureTime >= leg.arrivalTime) {
+        return MESSAGES.validation.flightTimeRange
+      }
+      return null
+    })
+  }, [flight.legs])
 
   const updateLeg = (index: number, partial: Partial<FlightLegFormData>) => {
     const newLegs = flight.legs.map((leg, i) =>
@@ -158,12 +168,16 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
           type="datetime-local"
           value={flight.legs[0].departureTime}
           onChange={(e) => updateLeg(0, { departureTime: e.target.value })}
+          error={legTimeErrors[0] ?? undefined}
+          errorBorderOnly
         />
         <Input
           label="도착 시간"
           type="datetime-local"
           value={flight.legs[0].arrivalTime}
           onChange={(e) => updateLeg(0, { arrivalTime: e.target.value })}
+          min={flight.legs[0].departureTime || undefined}
+          error={legTimeErrors[0] ?? undefined}
         />
         <Input
           label="예약번호"
@@ -221,12 +235,16 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
                 type="datetime-local"
                 value={flight.legs[1].departureTime}
                 onChange={(e) => updateLeg(1, { departureTime: e.target.value })}
+                error={legTimeErrors[1] ?? undefined}
+                errorBorderOnly
               />
               <Input
                 label="도착 시간"
                 type="datetime-local"
                 value={flight.legs[1].arrivalTime}
                 onChange={(e) => updateLeg(1, { arrivalTime: e.target.value })}
+                min={flight.legs[1].departureTime || undefined}
+                error={legTimeErrors[1] ?? undefined}
               />
               <Input
                 label="예약번호"

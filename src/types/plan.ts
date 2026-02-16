@@ -15,7 +15,6 @@ export interface PlanSection {
 
 export interface TravelPlan {
   id: string;
-  accessCode: string;
   title: string;
   description: string;
   startDate: string;
