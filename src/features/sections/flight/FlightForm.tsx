@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import type { SectionFormProps } from '../types'
 import type { FlightFormData, FlightLegFormData, TripType } from '@/types'
+import type { PatchPlanSectionInput } from '@/api'
 import { Input } from '@/components/ui/Input'
-import { Button } from '@/components/ui/Button'
 import { ImageGallery } from '@/components/ui/ImageGallery'
 import { CONSTRAINTS, MESSAGES } from '@/constants'
 import { useSectionForm } from '../hooks/useSectionForm'
@@ -45,12 +45,28 @@ function flightInfoToFormData(info: import('@/types').FlightInfo): FlightFormDat
   }
 }
 
-export function FlightForm({ section, onSave }: SectionFormProps) {
-  const { title, setTitle, data: flight, update, isSaving, validationError, save } =
+export function FlightForm({ section, sectionId }: SectionFormProps) {
+  const toInput = useCallback((title: string, flight: FlightFormData): Omit<PatchPlanSectionInput, 'id'> => {
+    return { title, flightInfo: flight }
+  }, [])
+
+  const validateFlight = useCallback((_title: string, flight: FlightFormData): string | null => {
+    for (let i = 0; i < flight.legs.length; i++) {
+      const leg = flight.legs[i]
+      if (leg.departureTime && leg.arrivalTime && leg.departureTime >= leg.arrivalTime) {
+        return MESSAGES.validation.flightLegTimeRange(i)
+      }
+    }
+    return null
+  }, [])
+
+  const { title, setTitle, data: flight, update, validationError } =
     useSectionForm<FlightFormData>(
       section,
       section.flightInfo ? flightInfoToFormData(section.flightInfo) : toFormData(undefined),
-      onSave,
+      sectionId,
+      toInput,
+      validateFlight,
     )
 
   const isRoundTrip = flight.tripType === 'roundTrip'
@@ -77,21 +93,6 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
     } else {
       update({ tripType, legs: [...flight.legs, emptyLeg()] })
     }
-  }
-
-  const handleSave = () => {
-    save(
-      () => {
-        for (let i = 0; i < flight.legs.length; i++) {
-          const leg = flight.legs[i]
-          if (leg.departureTime && leg.arrivalTime && leg.departureTime >= leg.arrivalTime) {
-            return MESSAGES.validation.flightLegTimeRange(i)
-          }
-        }
-        return null
-      },
-      () => ({ title, flightInfo: flight }),
-    )
   }
 
   return (
@@ -235,6 +236,7 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
                 type="datetime-local"
                 value={flight.legs[1].departureTime}
                 onChange={(e) => updateLeg(1, { departureTime: e.target.value })}
+                min={flight.legs[0].arrivalTime || undefined}
                 error={legTimeErrors[1] ?? undefined}
                 errorBorderOnly
               />
@@ -285,11 +287,6 @@ export function FlightForm({ section, onSave }: SectionFormProps) {
       {validationError && (
         <p className="text-sm text-red-600">{validationError}</p>
       )}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving} className="text-sm">
-          {isSaving ? '저장 중...' : '저장'}
-        </Button>
-      </div>
     </div>
   )
 }

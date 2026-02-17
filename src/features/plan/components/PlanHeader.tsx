@@ -4,30 +4,37 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { formatDate } from '@/lib/utils'
-import { usePlanStore } from '@/stores/usePlanStore'
-import { ApiError } from '@/api'
 import { CONSTRAINTS, MESSAGES } from '@/constants'
+import { usePendingChangesStore } from '@/stores/usePendingChangesStore'
 
 interface PlanHeaderProps {
   plan: TravelPlan;
   isEditMode: boolean;
+  isSaving?: boolean;
+  saveError?: string | null;
   onRequestEdit: () => void;
   onExitEdit: () => void;
+  onCancelEdit: () => void;
 }
 
 export function PlanHeader({
   plan,
   isEditMode,
+  isSaving = false,
+  saveError = null,
   onRequestEdit,
   onExitEdit,
+  onCancelEdit,
 }: PlanHeaderProps) {
-  const updatePlanInfo = usePlanStore((s) => s.updatePlanInfo)
   const [title, setTitle] = useState(plan.title)
   const [description, setDescription] = useState(plan.description)
   const [startDate, setStartDate] = useState(plan.startDate)
   const [endDate, setEndDate] = useState(plan.endDate)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  const setPlanInfo = usePendingChangesStore((s) => s.setPlanInfo)
+  const registerValidator = usePendingChangesStore((s) => s.registerValidator)
+  const unregisterValidator = usePendingChangesStore((s) => s.unregisterValidator)
 
   useEffect(() => {
     setTitle(plan.title)
@@ -36,27 +43,26 @@ export function PlanHeader({
     setEndDate(plan.endDate)
   }, [plan])
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    setError(null)
-    if (title.trim().length > CONSTRAINTS.plan.titleMaxLength) {
-      setError(MESSAGES.validation.titleMaxLength)
-      setIsSaving(false)
-      return
-    }
-    try {
-      await updatePlanInfo({ title, description, startDate, endDate })
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.message)
-      } else {
-        setError(MESSAGES.error.saveFailed)
-      }
-    }
-    setIsSaving(false)
-  }
+  // Sync changes to pending store
+  useEffect(() => {
+    if (!isEditMode) return
+    setPlanInfo({ title, description, startDate, endDate })
+  }, [title, description, startDate, endDate, isEditMode, setPlanInfo])
 
-  const dismissError = useCallback(() => setError(null), [])
+  // Register plan-level validator
+  useEffect(() => {
+    if (!isEditMode) return
+    registerValidator('__plan__', () => {
+      if (title.trim().length > CONSTRAINTS.plan.titleMaxLength) {
+        return MESSAGES.validation.titleMaxLength
+      }
+      return null
+    })
+    return () => unregisterValidator('__plan__')
+  }, [isEditMode, title, registerValidator, unregisterValidator])
+
+  const error = saveError || localError
+  const dismissError = useCallback(() => setLocalError(null), [])
 
   return (
     <div className="mb-6">
@@ -97,15 +103,6 @@ export function PlanHeader({
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="text-sm"
-              >
-                {isSaving ? '저장 중...' : '저장'}
-              </Button>
-            </div>
           </div>
         ) : (
           <div>
@@ -118,11 +115,16 @@ export function PlanHeader({
             </p>
           </div>
         )}
-        <div className="shrink-0">
+        <div className="shrink-0 flex flex-col gap-2">
           {isEditMode ? (
-            <Button variant="secondary" onClick={onExitEdit}>
-              수정 완료
-            </Button>
+            <>
+              <Button variant="secondary" onClick={onExitEdit} disabled={isSaving} className="min-w-[5rem]">
+                {isSaving ? '저장 중...' : '수정 완료'}
+              </Button>
+              <Button variant="ghost" onClick={onCancelEdit} disabled={isSaving}>
+                수정 취소
+              </Button>
+            </>
           ) : (
             <Button onClick={onRequestEdit}>
               수정
@@ -132,7 +134,7 @@ export function PlanHeader({
       </div>
       {isEditMode && (
         <div className="mt-4 rounded-lg bg-blue-50 px-4 py-2 text-sm text-blue-700">
-          수정 모드입니다. 각 항목을 편집한 후 저장 버튼을 눌러주세요.
+          수정 모드입니다. 항목을 편집한 후 수정 완료 버튼을 눌러주세요.
         </div>
       )}
     </div>

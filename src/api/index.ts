@@ -2,12 +2,9 @@ export { ApiError, NetworkError } from './client'
 export {
   fetchPlan,
   createPlan,
-  updatePlan,
+  patchPlan,
   deletePlan,
   authenticatePlan,
-  addSection,
-  updateSection,
   reorderSections,
-  deleteSection,
 } from './planApi'
-export type { CreatePlanInput, UpdatePlanInput, UpdateSectionInput } from './planApi'
+export type { CreatePlanInput, PatchPlanInput, PatchPlanSectionInput, NewSectionInput } from './planApi'

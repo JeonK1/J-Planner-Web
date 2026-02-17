@@ -1,22 +1,19 @@
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { PlanSection, SectionType } from '@/types'
 import { ApiError } from '@/api'
 import { MESSAGES } from '@/constants'
-import type { UpdateSectionInput } from '@/api'
+import { isTempId } from '@/lib/utils'
 import { ExpandableSection } from '@/components/ui/ExpandableSection'
 import { DraggableList } from '@/components/ui/DraggableList'
 import { Button } from '@/components/ui/Button'
 import { ErrorAlert } from '@/components/ui/ErrorAlert'
 import { getSectionRenderer } from '@/features/sections/registry'
 import { usePlanStore } from '@/stores/usePlanStore'
+import { usePendingChangesStore } from '@/stores/usePendingChangesStore'
 
 function formatSectionTitle(section: PlanSection): string {
   const label = SECTION_TYPE_LABEL[section.type]
-  const detail =
-    section.type === 'accommodation' && section.accommodationInfo?.name
-      ? section.accommodationInfo.name
-      : section.title
-  return `${label} (${detail})`
+  return section.title ? `${label} (${section.title})` : label
 }
 
 const SECTION_TYPE_LABEL: Record<SectionType, string> = {
@@ -39,45 +36,29 @@ function SectionItem({
   dragHandle: ReactNode;
 }) {
   const renderer = getSectionRenderer(section.type)
-  const updateSection = usePlanStore((s) => s.updateSection)
-  const removeSection = usePlanStore((s) => s.removeSection)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const markSectionDeleted = usePendingChangesStore((s) => s.markSectionDeleted)
+  const setSectionChange = usePendingChangesStore((s) => s.setSectionChange)
+  const sections = usePendingChangesStore((s) => s.sections)
   const [localConfirmed, setLocalConfirmed] = useState(section.confirmed)
-  const [error, setError] = useState<string | null>(null)
 
-  const dismissError = useCallback(() => setError(null), [])
+  // Sync confirmed state to pending store when it changes
+  useEffect(() => {
+    if (!isEditMode) return
+    const existing = sections.get(section.id)
+    if (existing) {
+      setSectionChange(section.id, { ...existing, confirmed: localConfirmed })
+    } else {
+      setSectionChange(section.id, { id: section.id, confirmed: localConfirmed })
+    }
+  }, [localConfirmed]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!renderer) return null
 
   const { DisplayComponent, FormComponent } = renderer
 
-  const handleSave = async (input: UpdateSectionInput) => {
-    setError(null)
-    try {
-      await updateSection(section.id, { ...input, confirmed: localConfirmed })
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.message)
-      } else {
-        setError(MESSAGES.error.saveFailed)
-      }
-    }
-  }
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!confirm('이 섹션을 삭제하시겠습니까?')) return
-    setIsDeleting(true)
-    setError(null)
-    try {
-      await removeSection(section.id)
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.message)
-      } else {
-        setError(MESSAGES.error.deleteFailed)
-      }
-      setIsDeleting(false)
-    }
+    markSectionDeleted(section.id)
   }
 
   const headerRight = isEditMode ? (
@@ -107,22 +88,16 @@ function SectionItem({
       headerLeft={dragHandle}
       headerRight={headerRight}
     >
-      {error && (
-        <div className="mb-3">
-          <ErrorAlert message={error} onDismiss={dismissError} autoHideMs={5000} />
-        </div>
-      )}
       {isEditMode ? (
         <div className="flex flex-col gap-3">
-          <FormComponent section={section} onSave={handleSave} />
+          <FormComponent section={section} sectionId={section.id} />
           <div className="flex justify-start">
             <Button
               variant="danger"
               className="px-3 py-1.5 text-xs"
               onClick={handleDelete}
-              disabled={isDeleting}
             >
-              {isDeleting ? '삭제 중...' : '섹션 삭제'}
+              섹션 삭제
             </Button>
           </div>
         </div>
@@ -134,20 +109,29 @@ function SectionItem({
 }
 
 export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) {
-  const addSection = usePlanStore((s) => s.addSection)
   const reorderSections = usePlanStore((s) => s.reorderSections)
-  const [isAdding, setIsAdding] = useState(false)
-  const [addError, setAddError] = useState<string | null>(null)
+  const addNewSection = usePendingChangesStore((s) => s.addNewSection)
+  const newSections = usePendingChangesStore((s) => s.newSections)
+  const deletedSectionIds = usePendingChangesStore((s) => s.deletedSectionIds)
   const [reorderError, setReorderError] = useState<string | null>(null)
-  const sorted = [...sections].sort((a, b) => a.order - b.order)
 
-  const dismissAddError = useCallback(() => setAddError(null), [])
   const dismissReorderError = useCallback(() => setReorderError(null), [])
+
+  // Compute working sections: (existing - deleted) + new
+  const workingSections = useMemo(() => {
+    const existing = sections.filter((s) => !deletedSectionIds.has(s.id))
+    return [...existing, ...newSections]
+  }, [sections, deletedSectionIds, newSections])
+
+  const sorted = [...workingSections].sort((a, b) => a.order - b.order)
 
   const handleReorder = async (reordered: PlanSection[]) => {
     setReorderError(null)
+    // Only send existing (non-temp) section IDs to the reorder API
+    const existingIds = reordered.map((s) => s.id).filter((id) => !isTempId(id))
+    if (existingIds.length === 0) return
     try {
-      await reorderSections(reordered.map((s) => s.id))
+      await reorderSections(existingIds)
     } catch (e) {
       if (e instanceof ApiError) {
         setReorderError(e.message)
@@ -157,19 +141,8 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
     }
   }
 
-  const handleAddSection = async (type: 'flight' | 'accommodation', title: string) => {
-    setIsAdding(true)
-    setAddError(null)
-    try {
-      await addSection(type, title)
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setAddError(e.message)
-      } else {
-        setAddError(MESSAGES.error.addSectionFailed)
-      }
-    }
-    setIsAdding(false)
+  const handleAddSection = (type: SectionType, title: string) => {
+    addNewSection(type, title)
   }
 
   if (sorted.length === 0 && !isEditMode) {
@@ -199,27 +172,20 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
         )}
       />
       {isEditMode && (
-        <>
-          {addError && (
-            <ErrorAlert message={addError} onDismiss={dismissAddError} autoHideMs={5000} />
-          )}
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => handleAddSection('flight', '새 비행기 정보')}
-              disabled={isAdding}
-            >
-              + 비행기 추가
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => handleAddSection('accommodation', '새 숙소 정보')}
-              disabled={isAdding}
-            >
-              + 숙소 추가
-            </Button>
-          </div>
-        </>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => handleAddSection('flight', '')}
+          >
+            + 비행기 추가
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => handleAddSection('accommodation', '')}
+          >
+            + 숙소 추가
+          </Button>
+        </div>
       )}
     </div>
   )

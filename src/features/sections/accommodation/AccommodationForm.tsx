@@ -1,15 +1,27 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import type { SectionFormProps } from '../types'
 import type { AccommodationInfo } from '@/types'
+import type { PatchPlanSectionInput } from '@/api'
 import { Input } from '@/components/ui/Input'
-import { Button } from '@/components/ui/Button'
 import { ImageGallery } from '@/components/ui/ImageGallery'
 import { CONSTRAINTS, MESSAGES } from '@/constants'
 import { useSectionForm } from '../hooks/useSectionForm'
 
-export function AccommodationForm({ section, onSave }: SectionFormProps) {
+export function AccommodationForm({ section, sectionId }: SectionFormProps) {
   const initial = section.accommodationInfo
-  const { title, setTitle, data: acc, update, isSaving, validationError, save } =
+
+  const toInput = useCallback((title: string, acc: Omit<AccommodationInfo, 'id'>): Omit<PatchPlanSectionInput, 'id'> => {
+    return { title, accommodationInfo: acc }
+  }, [])
+
+  const validate = useCallback((_title: string, acc: Omit<AccommodationInfo, 'id'>): string | null => {
+    if (acc.checkIn && acc.checkOut && acc.checkIn >= acc.checkOut) {
+      return MESSAGES.validation.accommodationDateRange
+    }
+    return null
+  }, [])
+
+  const { title, setTitle, data: acc, update, validationError } =
     useSectionForm<Omit<AccommodationInfo, 'id'>>(
       section,
       {
@@ -22,7 +34,9 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
         notes: initial?.notes ?? '',
         price: initial?.price,
       },
-      onSave,
+      sectionId,
+      toInput,
+      validate,
     )
 
   const dateError = useMemo(() => {
@@ -31,18 +45,6 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
     }
     return null
   }, [acc.checkIn, acc.checkOut])
-
-  const handleSave = () => {
-    save(
-      () => {
-        if (acc.checkIn && acc.checkOut && acc.checkIn >= acc.checkOut) {
-          return MESSAGES.validation.accommodationDateRange
-        }
-        return null
-      },
-      () => ({ title, accommodationInfo: acc }),
-    )
-  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -127,11 +129,6 @@ export function AccommodationForm({ section, onSave }: SectionFormProps) {
       {validationError && (
         <p className="text-sm text-red-600">{validationError}</p>
       )}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving} className="text-sm">
-          {isSaving ? '저장 중...' : '저장'}
-        </Button>
-      </div>
     </div>
   )
 }
