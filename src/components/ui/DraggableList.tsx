@@ -133,6 +133,7 @@ export function DraggableList<T>({
           return (
             <div
               key={key}
+              data-item-key={key}
               draggable={enabled}
               onDragStart={() => handleDragStart(key)}
               onDragOver={(e) => handleDragOver(e, key)}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { usePlan } from '@/features/plan/hooks/usePlan'
 import { useEditMode } from '@/features/plan/hooks/useEditMode'
 import { PlanHeader } from '@/features/plan/components/PlanHeader'
@@ -31,6 +31,7 @@ export function PlanPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
+  const sectionListRef = useRef<HTMLDivElement>(null)
   const pendingStore = usePendingChangesStore
 
   const handleSaveAndExit = useCallback(async () => {
@@ -86,6 +87,14 @@ export function PlanPage() {
     setIsCancelDialogOpen(true)
   }, [])
 
+  const handleAddSection = useCallback((type: 'flight' | 'accommodation') => {
+    const newSection = pendingStore.getState().addNewSection(type, '')
+    requestAnimationFrame(() => {
+      const el = sectionListRef.current?.querySelector(`[data-item-key="${newSection.id}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [pendingStore])
+
   const handleConfirmCancel = useCallback(() => {
     setIsCancelDialogOpen(false)
     pendingStore.getState().clear()
@@ -120,10 +129,28 @@ export function PlanPage() {
         onCancelEdit={handleCancelEdit}
       />
       <PlanTimeline plan={plan} />
+      {isEditMode && (
+        <div className="mb-6 flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => handleAddSection('flight')}
+          >
+            + 비행기 추가
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => handleAddSection('accommodation')}
+          >
+            + 숙소 추가
+          </Button>
+        </div>
+      )}
+      <div ref={sectionListRef}>
       <PlanSectionList
         sections={plan.sections}
         isEditMode={isEditMode}
       />
+      </div>
       <PasswordDialog
         isOpen={isPasswordDialogOpen}
         onClose={closePasswordDialog}

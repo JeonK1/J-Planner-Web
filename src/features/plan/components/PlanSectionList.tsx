@@ -110,7 +110,6 @@ function SectionItem({
 
 export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) {
   const reorderSections = usePlanStore((s) => s.reorderSections)
-  const addNewSection = usePendingChangesStore((s) => s.addNewSection)
   const newSections = usePendingChangesStore((s) => s.newSections)
   const deletedSectionIds = usePendingChangesStore((s) => s.deletedSectionIds)
   const [reorderError, setReorderError] = useState<string | null>(null)
@@ -141,10 +140,6 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
     }
   }
 
-  const handleAddSection = (type: SectionType, title: string) => {
-    addNewSection(type, title)
-  }
-
   if (sorted.length === 0 && !isEditMode) {
     return (
       <p className="text-center text-sm text-gray-500">
@@ -171,22 +166,6 @@ export function PlanSectionList({ sections, isEditMode }: PlanSectionListProps) 
           />
         )}
       />
-      {isEditMode && (
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => handleAddSection('flight', '')}
-          >
-            + 비행기 추가
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => handleAddSection('accommodation', '')}
-          >
-            + 숙소 추가
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
