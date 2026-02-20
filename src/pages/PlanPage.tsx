@@ -8,6 +8,7 @@ import { PasswordDialog } from '@/components/ui/PasswordDialog'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ConnectionError } from '@/components/ui/ConnectionError'
+import { ScrollToTopButton } from '@/components/ui/ScrollToTopButton'
 import { usePlanStore } from '@/stores/usePlanStore'
 import { usePendingChangesStore } from '@/stores/usePendingChangesStore'
 import { patchPlan } from '@/api/planApi'
@@ -179,6 +180,7 @@ export function PlanPage() {
           </Button>
         </div>
       </Modal>
+      <ScrollToTopButton />
     </div>
   )
 }
