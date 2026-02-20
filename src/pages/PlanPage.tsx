@@ -87,7 +87,7 @@ export function PlanPage() {
     setIsCancelDialogOpen(true)
   }, [])
 
-  const handleAddSection = useCallback((type: 'flight' | 'accommodation') => {
+  const handleAddSection = useCallback((type: 'flight' | 'accommodation' | 'activity') => {
     const newSection = pendingStore.getState().addNewSection(type, '')
     requestAnimationFrame(() => {
       const el = sectionListRef.current?.querySelector(`[data-item-key="${newSection.id}"]`)
@@ -128,7 +128,7 @@ export function PlanPage() {
         onExitEdit={handleSaveAndExit}
         onCancelEdit={handleCancelEdit}
       />
-      <PlanTimeline plan={plan} />
+      <PlanTimeline plan={plan} isEditMode={isEditMode} />
       {isEditMode && (
         <div className="mb-6 flex gap-2">
           <Button
@@ -142,6 +142,12 @@ export function PlanPage() {
             onClick={() => handleAddSection('accommodation')}
           >
             + 숙소 추가
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => handleAddSection('activity')}
+          >
+            + 액티비티 추가
           </Button>
         </div>
       )}

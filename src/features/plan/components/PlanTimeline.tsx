@@ -1,8 +1,10 @@
 import { useRef, useState, useCallback, useMemo, useEffect, memo } from 'react'
 import type { TravelPlan, PlanSection } from '@/types'
+import { usePendingChangesStore } from '@/stores/usePendingChangesStore'
 
 interface PlanTimelineProps {
   plan: TravelPlan;
+  isEditMode?: boolean;
 }
 
 type TimelineEvent = {
@@ -230,11 +232,81 @@ const ActivityEventItem = memo(function ActivityEventItem({
   )
 })
 
-export function PlanTimeline({ plan }: PlanTimelineProps) {
+function mergePendingSections(
+  baseSections: PlanSection[],
+  pendingSections: Map<string, { title?: string; confirmed?: boolean; flightInfo?: unknown; accommodationInfo?: unknown; activityInfo?: unknown }>,
+  newSections: PlanSection[],
+  deletedSectionIds: Set<string>,
+): PlanSection[] {
+  const existing = baseSections
+    .filter((s) => !deletedSectionIds.has(s.id))
+    .map((s) => {
+      const pending = pendingSections.get(s.id)
+      if (!pending) return s
+      const merged = { ...s }
+      if (pending.title !== undefined) merged.title = pending.title
+      if (pending.confirmed !== undefined) merged.confirmed = pending.confirmed
+      if (pending.flightInfo && s.type === 'flight') {
+        const f = pending.flightInfo as Partial<PlanSection['flightInfo']> & Record<string, unknown>
+        if (s.flightInfo) {
+          merged.flightInfo = { ...s.flightInfo, ...f } as PlanSection['flightInfo']
+        }
+      }
+      if (pending.accommodationInfo && s.type === 'accommodation') {
+        const a = pending.accommodationInfo as Record<string, unknown>
+        if (s.accommodationInfo) {
+          merged.accommodationInfo = { ...s.accommodationInfo, ...a } as PlanSection['accommodationInfo']
+        } else {
+          merged.accommodationInfo = { id: s.id, name: '', address: '', checkIn: '', checkOut: '', ...a } as PlanSection['accommodationInfo']
+        }
+      }
+      if (pending.activityInfo && s.type === 'activity') {
+        const a = pending.activityInfo as Record<string, unknown>
+        if (s.activityInfo) {
+          merged.activityInfo = { ...s.activityInfo, ...a } as PlanSection['activityInfo']
+        } else {
+          merged.activityInfo = { id: s.id, name: '', ...a } as PlanSection['activityInfo']
+        }
+      }
+      return merged
+    })
+
+  // new sections: 폼 데이터가 있으면 머지
+  const added = newSections.map((s) => {
+    const pending = pendingSections.get(s.id)
+    if (!pending) return s
+    const merged = { ...s }
+    if (pending.title !== undefined) merged.title = pending.title
+    if (pending.confirmed !== undefined) merged.confirmed = pending.confirmed
+    if (pending.activityInfo && s.type === 'activity') {
+      merged.activityInfo = { id: s.id, name: '', ...(pending.activityInfo as Record<string, unknown>) } as PlanSection['activityInfo']
+    }
+    if (pending.accommodationInfo && s.type === 'accommodation') {
+      merged.accommodationInfo = { id: s.id, name: '', address: '', checkIn: '', checkOut: '', ...(pending.accommodationInfo as Record<string, unknown>) } as PlanSection['accommodationInfo']
+    }
+    if (pending.flightInfo && s.type === 'flight') {
+      merged.flightInfo = { id: s.id, tripType: 'oneWay', legs: [], ...(pending.flightInfo as Record<string, unknown>) } as PlanSection['flightInfo']
+    }
+    return merged
+  })
+
+  return [...existing, ...added]
+}
+
+export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const dragState = useRef({ startX: 0, scrollLeft: 0 })
   const hasScrolled = useRef(false)
+
+  const pendingSectionsMap = usePendingChangesStore((s) => s.sections)
+  const pendingNewSections = usePendingChangesStore((s) => s.newSections)
+  const pendingDeletedIds = usePendingChangesStore((s) => s.deletedSectionIds)
+
+  const workingSections = useMemo(() => {
+    if (!isEditMode) return plan.sections
+    return mergePendingSections(plan.sections, pendingSectionsMap, pendingNewSections, pendingDeletedIds)
+  }, [isEditMode, plan.sections, pendingSectionsMap, pendingNewSections, pendingDeletedIds])
 
   const planStart = useMemo(() => parseDate(plan.startDate), [plan.startDate])
   const planEnd = useMemo(() => parseDate(plan.endDate), [plan.endDate])
@@ -254,9 +326,9 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
     return getDaysBetween(timelineStart, timelineEnd)
   }, [timelineStart, timelineEnd])
 
-  const flightEvents = useMemo(() => extractFlightEvents(plan.sections), [plan.sections])
-  const accEvents = useMemo(() => extractAccEvents(plan.sections), [plan.sections])
-  const activityEvents = useMemo(() => extractActivityEvents(plan.sections), [plan.sections])
+  const flightEvents = useMemo(() => extractFlightEvents(workingSections), [workingSections])
+  const accEvents = useMemo(() => extractAccEvents(workingSections), [workingSections])
+  const activityEvents = useMemo(() => extractActivityEvents(workingSections), [workingSections])
 
   const today = useMemo(() => new Date(), [])
 
