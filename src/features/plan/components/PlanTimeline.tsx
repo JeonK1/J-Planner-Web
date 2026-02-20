@@ -410,7 +410,7 @@ function mergePendingSections(
 export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null)
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const dragState = useRef({ startX: 0, scrollLeft: 0 })
   const hasScrolled = useRef(false)
 
@@ -444,6 +444,17 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
   const flightEvents = useMemo(() => extractFlightEvents(workingSections), [workingSections])
   const accEvents = useMemo(() => extractAccEvents(workingSections), [workingSections])
   const activityEvents = useMemo(() => extractActivityEvents(workingSections), [workingSections])
+
+  // 선택된 이벤트를 최신 데이터에서 조회 (수정모드에서 실시간 반영)
+  const selectedEvent = useMemo(() => {
+    if (!selectedEventId) return null
+    return (
+      flightEvents.find((e) => e.id === selectedEventId)
+      ?? accEvents.find((e) => e.id === selectedEventId)
+      ?? activityEvents.find((e) => e.id === selectedEventId)
+      ?? null
+    )
+  }, [selectedEventId, flightEvents, accEvents, activityEvents])
 
   const today = useMemo(() => new Date(), [])
 
@@ -492,10 +503,10 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
     e.stopPropagation()
 
     // 이미 같은 이벤트가 열려 있으면 닫기
-    setSelectedEvent((prev) => prev?.id === event.id ? null : event)
+    setSelectedEventId((prev) => prev === event.id ? null : event.id)
   }, [])
 
-  const closeDetailPanel = useCallback(() => setSelectedEvent(null), [])
+  const closeDetailPanel = useCallback(() => setSelectedEventId(null), [])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const container = containerRef.current
