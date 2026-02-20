@@ -19,6 +19,7 @@ function formatSectionTitle(section: PlanSection): string {
 const SECTION_TYPE_LABEL: Record<SectionType, string> = {
   flight: '비행기 정보',
   accommodation: '숙소 정보',
+  activity: '액티비티 정보',
 }
 
 interface PlanSectionListProps {
