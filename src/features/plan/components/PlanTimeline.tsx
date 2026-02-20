@@ -1,10 +1,16 @@
 import { useRef, useState, useCallback, useMemo, useEffect, memo } from 'react'
 import type { TravelPlan, PlanSection } from '@/types'
+import { formatDateTime } from '@/lib/utils'
 import { usePendingChangesStore } from '@/stores/usePendingChangesStore'
 
 interface PlanTimelineProps {
   plan: TravelPlan;
   isEditMode?: boolean;
+}
+
+interface TooltipDetail {
+  label: string;
+  value: string;
 }
 
 type TimelineEvent = {
@@ -13,6 +19,7 @@ type TimelineEvent = {
   label: string;
   startMs: number;
   endMs: number;
+  details: TooltipDetail[];
 }
 
 interface DayInfo {
@@ -57,12 +64,21 @@ function extractFlightEvents(sections: PlanSection[]): TimelineEvent[] {
       const arr = parseDate(leg.arrivalTime)
       if (!dep || !arr) continue
 
+      const details: TooltipDetail[] = []
+      if (leg.airline) details.push({ label: '항공사', value: leg.airline })
+      if (leg.flightNumber) details.push({ label: '편명', value: leg.flightNumber })
+      details.push({ label: '출발', value: `${leg.departureAirport} ${formatDateTime(leg.departureTime)}` })
+      details.push({ label: '도착', value: `${leg.arrivalAirport} ${formatDateTime(leg.arrivalTime)}` })
+      if (leg.bookingReference) details.push({ label: '예약번호', value: leg.bookingReference })
+      if (f.price != null) details.push({ label: '가격', value: `${f.price.toLocaleString()}원` })
+
       events.push({
         id: `${section.id}-leg-${leg.legOrder}`,
         type: 'flight',
         label: leg.flightNumber || leg.airline || section.title,
         startMs: dep.getTime(),
         endMs: arr.getTime(),
+        details,
       })
     }
   }
@@ -80,12 +96,23 @@ function extractAccEvents(sections: PlanSection[]): TimelineEvent[] {
     const checkOut = parseDate(a.checkOut)
     if (!checkIn || !checkOut) continue
 
+    const details: TooltipDetail[] = [
+      { label: '숙소명', value: a.name },
+    ]
+    if (a.address) details.push({ label: '주소', value: a.address })
+    details.push({ label: '체크인', value: formatDateTime(a.checkIn) })
+    details.push({ label: '체크아웃', value: formatDateTime(a.checkOut) })
+    if (a.bookingReference) details.push({ label: '예약번호', value: a.bookingReference })
+    if (a.contactNumber) details.push({ label: '연락처', value: a.contactNumber })
+    if (a.price != null) details.push({ label: '가격', value: `${a.price.toLocaleString()}원` })
+
     events.push({
       id: `${section.id}-acc`,
       type: 'accommodation',
       label: a.name || section.title,
       startMs: checkIn.getTime(),
       endMs: checkOut.getTime(),
+      details,
     })
   }
 
@@ -102,12 +129,22 @@ function extractActivityEvents(sections: PlanSection[]): TimelineEvent[] {
     const end = parseDate(a.endTime ?? '')
     if (!start || !end) continue
 
+    const details: TooltipDetail[] = [
+      { label: '액티비티', value: a.name },
+    ]
+    if (a.location) details.push({ label: '위치', value: a.location })
+    details.push({ label: '시작', value: formatDateTime(a.startTime!) })
+    details.push({ label: '종료', value: formatDateTime(a.endTime!) })
+    if (a.price != null) details.push({ label: '가격', value: `${a.price.toLocaleString()}원` })
+    if (a.notes) details.push({ label: '메모', value: a.notes })
+
     events.push({
       id: `${section.id}-activity`,
       type: 'activity',
       label: a.name || section.title,
       startMs: start.getTime(),
       endMs: end.getTime(),
+      details,
     })
   }
 
@@ -139,6 +176,68 @@ function isSameDay(a: Date, b: Date): boolean {
 function isInRange(day: Date, start: Date, end: Date): boolean {
   const d = day.getTime()
   return d >= start.getTime() && d <= end.getTime()
+}
+
+// --- Tooltip ---
+
+const TYPE_LABELS: Record<TimelineEvent['type'], string> = {
+  flight: '비행기 정보',
+  accommodation: '숙소 정보',
+  activity: '액티비티 정보',
+}
+
+const TYPE_COLORS: Record<TimelineEvent['type'], string> = {
+  flight: 'border-blue-200',
+  accommodation: 'border-purple-200',
+  activity: 'border-orange-200',
+}
+
+function EventTooltip({
+  event,
+  anchorRect,
+  containerRect,
+  onClose,
+}: {
+  event: TimelineEvent;
+  anchorRect: { left: number; top: number; width: number; height: number };
+  containerRect: { left: number; top: number; width: number; height: number };
+  onClose: () => void;
+}) {
+  const tooltipRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [onClose])
+
+  // 툴팁 위치: 막대 아래, 컨테이너 기준으로 보정
+  const tooltipLeft = anchorRect.left - containerRect.left
+  const tooltipTop = anchorRect.top - containerRect.top + anchorRect.height + 6
+
+  return (
+    <div
+      ref={tooltipRef}
+      className={`absolute z-50 w-56 rounded-lg border bg-white p-3 shadow-lg ${TYPE_COLORS[event.type]}`}
+      style={{ left: tooltipLeft, top: tooltipTop }}
+    >
+      <div className="mb-2 text-xs font-semibold text-gray-800">
+        {TYPE_LABELS[event.type]}
+      </div>
+      <div className="flex flex-col gap-1">
+        {event.details.map((d, i) => (
+          <div key={i} className="flex gap-2 text-xs">
+            <span className="shrink-0 font-medium text-gray-500">{d.label}</span>
+            <span className="text-gray-700">{d.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // --- Memoized sub-components ---
@@ -175,18 +274,23 @@ const FlightEventItem = memo(function FlightEventItem({
   event,
   left,
   width,
+  onClick,
 }: {
   event: TimelineEvent;
   left: number;
   width: number;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
-      className="absolute flex items-center rounded-md bg-blue-100 px-2 text-[11px] font-medium text-blue-700 shadow-sm"
+      className="absolute flex cursor-pointer items-center rounded-md bg-blue-100 px-2 text-[11px] font-medium text-blue-700 shadow-sm hover:bg-blue-200"
       style={{ left, width, top: 4, height: 22 }}
-      title={event.label}
+      onClick={onClick}
     >
-      <span>&#9992;</span>
+      <span className="truncate">
+        <span className="mr-1">&#9992;</span>
+        {event.label}
+      </span>
     </div>
   )
 })
@@ -196,17 +300,19 @@ const AccommodationEventItem = memo(function AccommodationEventItem({
   left,
   width,
   top,
+  onClick,
 }: {
   event: TimelineEvent;
   left: number;
   width: number;
   top: number;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
-      className="absolute flex items-center rounded-md bg-purple-100 px-2 text-[11px] font-medium text-purple-700 shadow-sm"
+      className="absolute flex cursor-pointer items-center rounded-md bg-purple-100 px-2 text-[11px] font-medium text-purple-700 shadow-sm hover:bg-purple-200"
       style={{ left, width, top, height: 22 }}
-      title={event.label}
+      onClick={onClick}
     >
       <span className="truncate">
         <span className="mr-1">&#127976;</span>
@@ -221,17 +327,19 @@ const ActivityEventItem = memo(function ActivityEventItem({
   left,
   width,
   top,
+  onClick,
 }: {
   event: TimelineEvent;
   left: number;
   width: number;
   top: number;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   return (
     <div
-      className="absolute flex items-center rounded-md bg-orange-100 px-2 text-[11px] font-medium text-orange-700 shadow-sm"
+      className="absolute flex cursor-pointer items-center rounded-md bg-orange-100 px-2 text-[11px] font-medium text-orange-700 shadow-sm hover:bg-orange-200"
       style={{ left, width, top, height: 22 }}
-      title={event.label}
+      onClick={onClick}
     >
       <span className="truncate">
         <span className="mr-1">&#127919;</span>
@@ -302,9 +410,16 @@ function mergePendingSections(
   return [...existing, ...added]
 }
 
+interface TooltipState {
+  event: TimelineEvent;
+  anchorRect: { left: number; top: number; width: number; height: number };
+}
+
 export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const eventAreaRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const dragState = useRef({ startX: 0, scrollLeft: 0 })
   const hasScrolled = useRef(false)
 
@@ -378,6 +493,38 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
     return { left, width }
   }, [timelineStartMs, totalMs, totalWidth])
 
+  const handleEventClick = useCallback((event: TimelineEvent, e: React.MouseEvent) => {
+    // 드래그 중에는 클릭 무시
+    const dx = Math.abs(e.pageX - dragState.current.startX)
+    if (dx > 4) return
+
+    e.stopPropagation()
+    const target = e.currentTarget as HTMLElement
+    const area = eventAreaRef.current
+    if (!area) return
+
+    const areaRect = area.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+
+    // 이미 같은 이벤트가 열려 있으면 닫기
+    if (tooltip?.event.id === event.id) {
+      setTooltip(null)
+      return
+    }
+
+    setTooltip({
+      event,
+      anchorRect: {
+        left: targetRect.left - areaRect.left,
+        top: targetRect.top - areaRect.top,
+        width: targetRect.width,
+        height: targetRect.height,
+      },
+    })
+  }, [tooltip])
+
+  const closeTooltip = useCallback(() => setTooltip(null), [])
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const container = containerRef.current
     if (!container) return
@@ -427,7 +574,7 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
           </div>
 
           {/* 이벤트 영역 */}
-          <div className="relative px-0 py-2" style={{ minHeight: 28 * rowCount + 8 }}>
+          <div ref={eventAreaRef} className="relative px-0 py-2" style={{ minHeight: 28 * rowCount + 8 }}>
             {/* 날짜 구분선 */}
             {dayInfos.map((day, i) => (
               <div
@@ -446,6 +593,7 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
                   event={seg}
                   left={left}
                   width={width}
+                  onClick={(e) => handleEventClick(seg, e)}
                 />
               )
             })}
@@ -460,6 +608,7 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
                   left={left}
                   width={width}
                   top={4 + (hasFlights ? 1 : 0) * 28}
+                  onClick={(e) => handleEventClick(event, e)}
                 />
               )
             })}
@@ -474,9 +623,20 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
                   left={left}
                   width={width}
                   top={4 + ((hasFlights ? 1 : 0) + (hasAccommodations ? 1 : 0)) * 28}
+                  onClick={(e) => handleEventClick(event, e)}
                 />
               )
             })}
+
+            {/* 툴팁 */}
+            {tooltip && (
+              <EventTooltip
+                event={tooltip.event}
+                anchorRect={tooltip.anchorRect}
+                containerRect={{ left: 0, top: 0, width: totalWidth, height: 0 }}
+                onClose={closeTooltip}
+              />
+            )}
           </div>
         </div>
       </div>
