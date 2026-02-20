@@ -7,7 +7,7 @@ interface PlanTimelineProps {
 
 type TimelineEvent = {
   id: string;
-  type: 'flight' | 'accommodation';
+  type: 'flight' | 'accommodation' | 'activity';
   label: string;
   startMs: number;
   endMs: number;
@@ -75,6 +75,28 @@ function extractAccEvents(sections: PlanSection[]): TimelineEvent[] {
       label: a.name || section.title,
       startMs: checkIn.getTime(),
       endMs: checkOut.getTime(),
+    })
+  }
+
+  return events
+}
+
+function extractActivityEvents(sections: PlanSection[]): TimelineEvent[] {
+  const events: TimelineEvent[] = []
+
+  for (const section of sections) {
+    if (section.type !== 'activity' || !section.activityInfo || !section.confirmed) continue
+    const a = section.activityInfo
+    const start = parseDate(a.startTime ?? '')
+    const end = parseDate(a.endTime ?? '')
+    if (!start || !end) continue
+
+    events.push({
+      id: `${section.id}-activity`,
+      type: 'activity',
+      label: a.name || section.title,
+      startMs: start.getTime(),
+      endMs: end.getTime(),
     })
   }
 
@@ -183,6 +205,31 @@ const AccommodationEventItem = memo(function AccommodationEventItem({
   )
 })
 
+const ActivityEventItem = memo(function ActivityEventItem({
+  event,
+  left,
+  width,
+  top,
+}: {
+  event: TimelineEvent;
+  left: number;
+  width: number;
+  top: number;
+}) {
+  return (
+    <div
+      className="absolute flex items-center rounded-md bg-orange-100 px-2 text-[11px] font-medium text-orange-700 shadow-sm"
+      style={{ left, width, top, height: 22 }}
+      title={event.label}
+    >
+      <span className="truncate">
+        <span className="mr-1">&#127919;</span>
+        {event.label}
+      </span>
+    </div>
+  )
+})
+
 export function PlanTimeline({ plan }: PlanTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -209,6 +256,7 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
 
   const flightEvents = useMemo(() => extractFlightEvents(plan.sections), [plan.sections])
   const accEvents = useMemo(() => extractAccEvents(plan.sections), [plan.sections])
+  const activityEvents = useMemo(() => extractActivityEvents(plan.sections), [plan.sections])
 
   const today = useMemo(() => new Date(), [])
 
@@ -275,7 +323,8 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
 
   const hasFlights = flightEvents.length > 0
   const hasAccommodations = accEvents.length > 0
-  const rowCount = (hasFlights ? 1 : 0) + (hasAccommodations ? 1 : 0)
+  const hasActivities = activityEvents.length > 0
+  const rowCount = (hasFlights ? 1 : 0) + (hasAccommodations ? 1 : 0) + (hasActivities ? 1 : 0)
 
   return (
     <div className="mb-6 rounded-lg border border-gray-200 bg-white">
@@ -330,6 +379,20 @@ export function PlanTimeline({ plan }: PlanTimelineProps) {
                   left={left}
                   width={width}
                   top={4 + (hasFlights ? 1 : 0) * 28}
+                />
+              )
+            })}
+
+            {/* 액티비티 이벤트 */}
+            {activityEvents.map((event) => {
+              const { left, width } = getEventStyle(event)
+              return (
+                <ActivityEventItem
+                  key={event.id}
+                  event={event}
+                  left={left}
+                  width={width}
+                  top={4 + ((hasFlights ? 1 : 0) + (hasAccommodations ? 1 : 0)) * 28}
                 />
               )
             })}
