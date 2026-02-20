@@ -178,7 +178,7 @@ function isInRange(day: Date, start: Date, end: Date): boolean {
   return d >= start.getTime() && d <= end.getTime()
 }
 
-// --- Tooltip ---
+// --- Detail panel ---
 
 const TYPE_LABELS: Record<TimelineEvent['type'], string> = {
   flight: '비행기 정보',
@@ -186,59 +186,56 @@ const TYPE_LABELS: Record<TimelineEvent['type'], string> = {
   activity: '액티비티 정보',
 }
 
-const TYPE_COLORS: Record<TimelineEvent['type'], string> = {
-  flight: 'border-blue-200',
-  accommodation: 'border-purple-200',
-  activity: 'border-orange-200',
+const TYPE_BADGE_COLORS: Record<TimelineEvent['type'], string> = {
+  flight: 'bg-blue-100 text-blue-700',
+  accommodation: 'bg-purple-100 text-purple-700',
+  activity: 'bg-orange-100 text-orange-700',
 }
 
-function EventTooltip({
+const TYPE_ICONS: Record<TimelineEvent['type'], string> = {
+  flight: '\u2708',
+  accommodation: '\uD83C\uDFE8',
+  activity: '\uD83C\uDFAF',
+}
+
+const EventDetailPanel = memo(function EventDetailPanel({
   event,
-  anchorRect,
-  containerRect,
   onClose,
 }: {
   event: TimelineEvent;
-  anchorRect: { left: number; top: number; width: number; height: number };
-  containerRect: { left: number; top: number; width: number; height: number };
   onClose: () => void;
 }) {
-  const tooltipRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [onClose])
-
-  // 툴팁 위치: 막대 아래, 컨테이너 기준으로 보정
-  const tooltipLeft = anchorRect.left - containerRect.left
-  const tooltipTop = anchorRect.top - containerRect.top + anchorRect.height + 6
-
   return (
-    <div
-      ref={tooltipRef}
-      className={`absolute z-50 w-56 rounded-lg border bg-white p-3 shadow-lg ${TYPE_COLORS[event.type]}`}
-      style={{ left: tooltipLeft, top: tooltipTop }}
-    >
-      <div className="mb-2 text-xs font-semibold text-gray-800">
-        {TYPE_LABELS[event.type]}
+    <div className="border-t border-gray-200 px-4 py-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE_COLORS[event.type]}`}>
+            <span>{TYPE_ICONS[event.type]}</span>
+            {TYPE_LABELS[event.type]}
+          </span>
+          <span className="text-sm font-medium text-gray-800">{event.label}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         {event.details.map((d, i) => (
-          <div key={i} className="flex gap-2 text-xs">
-            <span className="shrink-0 font-medium text-gray-500">{d.label}</span>
+          <div key={i} className="flex gap-1.5 text-xs">
+            <span className="font-medium text-gray-500">{d.label}</span>
             <span className="text-gray-700">{d.value}</span>
           </div>
         ))}
       </div>
     </div>
   )
-}
+})
 
 // --- Memoized sub-components ---
 
@@ -410,16 +407,10 @@ function mergePendingSections(
   return [...existing, ...added]
 }
 
-interface TooltipState {
-  event: TimelineEvent;
-  anchorRect: { left: number; top: number; width: number; height: number };
-}
-
 export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const eventAreaRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null)
   const dragState = useRef({ startX: 0, scrollLeft: 0 })
   const hasScrolled = useRef(false)
 
@@ -499,31 +490,12 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
     if (dx > 4) return
 
     e.stopPropagation()
-    const target = e.currentTarget as HTMLElement
-    const area = eventAreaRef.current
-    if (!area) return
-
-    const areaRect = area.getBoundingClientRect()
-    const targetRect = target.getBoundingClientRect()
 
     // 이미 같은 이벤트가 열려 있으면 닫기
-    if (tooltip?.event.id === event.id) {
-      setTooltip(null)
-      return
-    }
+    setSelectedEvent((prev) => prev?.id === event.id ? null : event)
+  }, [])
 
-    setTooltip({
-      event,
-      anchorRect: {
-        left: targetRect.left - areaRect.left,
-        top: targetRect.top - areaRect.top,
-        width: targetRect.width,
-        height: targetRect.height,
-      },
-    })
-  }, [tooltip])
-
-  const closeTooltip = useCallback(() => setTooltip(null), [])
+  const closeDetailPanel = useCallback(() => setSelectedEvent(null), [])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const container = containerRef.current
@@ -574,7 +546,7 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
           </div>
 
           {/* 이벤트 영역 */}
-          <div ref={eventAreaRef} className="relative px-0 py-2" style={{ minHeight: 28 * rowCount + 8 }}>
+          <div className="relative px-0 py-2" style={{ minHeight: 28 * rowCount + 8 }}>
             {/* 날짜 구분선 */}
             {dayInfos.map((day, i) => (
               <div
@@ -627,19 +599,14 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
                 />
               )
             })}
-
-            {/* 툴팁 */}
-            {tooltip && (
-              <EventTooltip
-                event={tooltip.event}
-                anchorRect={tooltip.anchorRect}
-                containerRect={{ left: 0, top: 0, width: totalWidth, height: 0 }}
-                onClose={closeTooltip}
-              />
-            )}
           </div>
         </div>
       </div>
+
+      {/* 하단 상세 패널 */}
+      {selectedEvent && (
+        <EventDetailPanel event={selectedEvent} onClose={closeDetailPanel} />
+      )}
     </div>
   )
 }
