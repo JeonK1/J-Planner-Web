@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { TravelPlan, PlanSection, SectionType } from '@/types'
 import type { PatchPlanSectionInput, NewSectionInput } from '@/api'
 import { generateTempId, isTempId } from '@/lib/utils'
-import { mapDomainFlightToApi, mapDomainAccommodationToApi } from '@/api/mappers'
+import { mapDomainFlightToApi, mapDomainAccommodationToApi, mapDomainActivityToApi } from '@/api/mappers'
 
 interface PlanInfoChange {
   title?: string;
@@ -99,6 +99,7 @@ export const usePendingChangesStore = create<PendingChangesState & PendingChange
       confirmed: true,
       flightInfo: null,
       accommodationInfo: null,
+      activityInfo: null,
     }
     set({ newSections: [...newSections, newSection] })
     return newSection
@@ -170,7 +171,7 @@ export const usePendingChangesStore = create<PendingChangesState & PendingChange
     if (newSections.length > 0) {
       payload.newSections = newSections.map((s) => {
         const input: NewSectionInput = {
-          sectionType: s.type.toUpperCase() as 'FLIGHT' | 'ACCOMMODATION',
+          sectionType: s.type.toUpperCase() as 'FLIGHT' | 'ACCOMMODATION' | 'ACTIVITY',
           title: s.title,
           confirmed: s.confirmed,
         }
@@ -181,6 +182,7 @@ export const usePendingChangesStore = create<PendingChangesState & PendingChange
           if (formData.confirmed !== undefined) input.confirmed = formData.confirmed
           if (formData.flightInfo) input.flightInfo = mapDomainFlightToApi(formData.flightInfo)
           if (formData.accommodationInfo) input.accommodationInfo = mapDomainAccommodationToApi(formData.accommodationInfo)
+          if (formData.activityInfo) input.activityInfo = mapDomainActivityToApi(formData.activityInfo)
         }
         return input
       })

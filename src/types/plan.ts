@@ -1,7 +1,8 @@
 import type { FlightInfo } from './flight'
 import type { AccommodationInfo } from './accommodation'
+import type { ActivityInfo } from './activity'
 
-export type SectionType = 'flight' | 'accommodation';
+export type SectionType = 'flight' | 'accommodation' | 'activity';
 
 export interface PlanSection {
   id: string;
@@ -11,6 +12,7 @@ export interface PlanSection {
   confirmed: boolean;
   flightInfo: FlightInfo | null;
   accommodationInfo: AccommodationInfo | null;
+  activityInfo: ActivityInfo | null;
 }
 
 export interface TravelPlan {

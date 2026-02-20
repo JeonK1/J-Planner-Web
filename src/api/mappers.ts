@@ -1,5 +1,5 @@
-import type { ApiTravelPlan, ApiPlanSection, ApiFlightInfo, ApiAccommodationInfo } from './types'
-import type { TravelPlan, PlanSection, FlightInfo, AccommodationInfo, SectionType, TripType, FlightFormData } from '@/types'
+import type { ApiTravelPlan, ApiPlanSection, ApiFlightInfo, ApiAccommodationInfo, ApiActivityInfo } from './types'
+import type { TravelPlan, PlanSection, FlightInfo, AccommodationInfo, ActivityInfo, SectionType, TripType, FlightFormData } from '@/types'
 
 export function mapApiPlanToDomain(api: ApiTravelPlan): TravelPlan {
   return {
@@ -23,6 +23,7 @@ export function mapApiSectionToDomain(api: ApiPlanSection): PlanSection {
     confirmed: api.confirmed,
     flightInfo: api.flightInfo ? mapApiFlightToDomain(api.flightInfo) : null,
     accommodationInfo: api.accommodationInfo ? mapApiAccommodationToDomain(api.accommodationInfo) : null,
+    activityInfo: api.activityInfo ? mapApiActivityToDomain(api.activityInfo) : null,
   }
 }
 
@@ -101,5 +102,28 @@ export function mapDomainAccommodationToApi(acc: Partial<AccommodationInfo>) {
     contactNumber: acc.contactNumber || null,
     notes: acc.notes || null,
     price: acc.price ?? null,
+  }
+}
+
+function mapApiActivityToDomain(api: ApiActivityInfo): ActivityInfo {
+  return {
+    id: String(api.id),
+    name: api.name,
+    location: api.location ?? undefined,
+    startTime: api.startTime ?? undefined,
+    endTime: api.endTime ?? undefined,
+    price: api.price ?? undefined,
+    notes: api.notes ?? undefined,
+  }
+}
+
+export function mapDomainActivityToApi(activity: Partial<ActivityInfo>) {
+  return {
+    name: activity.name ?? '',
+    location: activity.location || null,
+    startTime: activity.startTime || null,
+    endTime: activity.endTime || null,
+    price: activity.price ?? null,
+    notes: activity.notes || null,
   }
 }

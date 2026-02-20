@@ -25,6 +25,7 @@ export const MESSAGES = {
     flightLegTimeRange: (legIndex: number) =>
       `구간 ${legIndex + 1}의 출발시간이 도착시간보다 같거나 늦을 수 없습니다.` as const,
     accommodationDateRange: '체크인 날짜가 체크아웃 날짜보다 같거나 늦을 수 없습니다.',
+    activityTimeRange: '시작시간이 끝나는시간보다 같거나 늦을 수 없습니다.',
     passwordMinLength: '비밀번호는 최소 8자 이상이어야 합니다.',
     descriptionMaxLength: '설명은 최대 100자까지 입력할 수 있습니다.',
     titleMaxLength: '제목은 최대 100자까지 입력할 수 있습니다.',

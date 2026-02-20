@@ -20,4 +20,9 @@ export const CONSTRAINTS = {
     contactNumberMaxLength: 30,
     notesMaxLength: 1000,
   },
+  activity: {
+    nameMaxLength: 200,
+    locationMaxLength: 500,
+    notesMaxLength: 1000,
+  },
 } as const

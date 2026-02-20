@@ -1,7 +1,7 @@
 import { api, ApiError } from './client'
 import type { ApiTravelPlan, ApiPlanSection } from './types'
-import { mapApiPlanToDomain, mapApiSectionToDomain, mapDomainFlightToApi, mapDomainAccommodationToApi } from './mappers'
-import type { TravelPlan, PlanSection, FlightFormData, AccommodationInfo } from '@/types'
+import { mapApiPlanToDomain, mapApiSectionToDomain, mapDomainFlightToApi, mapDomainAccommodationToApi, mapDomainActivityToApi } from './mappers'
+import type { TravelPlan, PlanSection, FlightFormData, AccommodationInfo, ActivityInfo } from '@/types'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 // --- Plan ---
@@ -35,14 +35,16 @@ export interface PatchPlanSectionInput {
   confirmed?: boolean;
   flightInfo?: Partial<FlightFormData>;
   accommodationInfo?: Partial<AccommodationInfo>;
+  activityInfo?: Partial<ActivityInfo>;
 }
 
 export interface NewSectionInput {
-  sectionType: 'FLIGHT' | 'ACCOMMODATION';
+  sectionType: 'FLIGHT' | 'ACCOMMODATION' | 'ACTIVITY';
   title: string;
   confirmed: boolean;
   flightInfo?: ReturnType<typeof mapDomainFlightToApi>;
   accommodationInfo?: ReturnType<typeof mapDomainAccommodationToApi>;
+  activityInfo?: ReturnType<typeof mapDomainActivityToApi>;
 }
 
 export interface PatchPlanInput {
@@ -67,6 +69,7 @@ export async function patchPlan(accessCode: string, input: PatchPlanInput): Prom
       if (s.confirmed !== undefined) section.confirmed = s.confirmed
       if (s.flightInfo) section.flightInfo = mapDomainFlightToApi(s.flightInfo)
       if (s.accommodationInfo) section.accommodationInfo = mapDomainAccommodationToApi(s.accommodationInfo)
+      if (s.activityInfo) section.activityInfo = mapDomainActivityToApi(s.activityInfo)
       return section
     })
   }

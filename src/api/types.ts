@@ -12,11 +12,12 @@ export interface ApiTravelPlan {
 export interface ApiPlanSection {
   id: number;
   title: string;
-  sectionType: 'FLIGHT' | 'ACCOMMODATION';
+  sectionType: 'FLIGHT' | 'ACCOMMODATION' | 'ACTIVITY';
   displayOrder: number;
   confirmed: boolean;
   flightInfo: ApiFlightInfo | null;
   accommodationInfo: ApiAccommodationInfo | null;
+  activityInfo: ApiActivityInfo | null;
 }
 
 export interface ApiFlightLeg {
@@ -49,4 +50,14 @@ export interface ApiAccommodationInfo {
   contactNumber: string | null;
   notes: string | null;
   price: number | null;
+}
+
+export interface ApiActivityInfo {
+  id: number;
+  name: string;
+  location: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  price: number | null;
+  notes: string | null;
 }
