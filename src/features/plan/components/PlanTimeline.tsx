@@ -225,14 +225,14 @@ const EventDetailPanel = memo(function EventDetailPanel({
           </svg>
         </button>
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
         {event.details.map((d, i) => (
-          <div key={i} className="flex gap-1.5 text-xs">
-            <span className="font-medium text-gray-500">{d.label}</span>
-            <span className="text-gray-700">{d.value}</span>
+          <div key={i} className="col-span-2 grid grid-cols-subgrid">
+            <dt className="font-medium text-gray-500">{d.label}</dt>
+            <dd className="text-gray-700">{d.value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
     </div>
   )
 })
