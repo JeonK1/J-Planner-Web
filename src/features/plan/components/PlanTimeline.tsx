@@ -36,6 +36,15 @@ function parseDate(s: string): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
+/** 날짜 전용 문자열("YYYY-MM-DD")을 로컬 자정으로 파싱 */
+function parseDateLocal(s: string): Date | null {
+  if (!s) return null
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return null
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
 function extractFlightEvents(sections: PlanSection[]): TimelineEvent[] {
   const events: TimelineEvent[] = []
 
@@ -308,8 +317,8 @@ export function PlanTimeline({ plan, isEditMode = false }: PlanTimelineProps) {
     return mergePendingSections(plan.sections, pendingSectionsMap, pendingNewSections, pendingDeletedIds)
   }, [isEditMode, plan.sections, pendingSectionsMap, pendingNewSections, pendingDeletedIds])
 
-  const planStart = useMemo(() => parseDate(plan.startDate), [plan.startDate])
-  const planEnd = useMemo(() => parseDate(plan.endDate), [plan.endDate])
+  const planStart = useMemo(() => parseDateLocal(plan.startDate), [plan.startDate])
+  const planEnd = useMemo(() => parseDateLocal(plan.endDate), [plan.endDate])
 
   const timelineStart = useMemo(() => {
     if (!planStart) return null
