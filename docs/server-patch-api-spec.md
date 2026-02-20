@@ -65,6 +65,14 @@ All fields are optional. Only include fields that have changed.
         "contactNumber": "string | null",
         "notes": "string | null",
         "price": "number | null"
+      },
+      "activityInfo": {
+        "name": "string",
+        "location": "string | null",
+        "startTime": "string (ISO 8601) | null",
+        "endTime": "string (ISO 8601) | null",
+        "price": "number | null",
+        "notes": "string | null"
       }
     }
   ]
@@ -86,6 +94,7 @@ All fields are optional. Only include fields that have changed.
 | `sections[].confirmed` | boolean | No | Confirmation status |
 | `sections[].flightInfo` | object | No | Flight data (only for flight sections) |
 | `sections[].accommodationInfo` | object | No | Accommodation data (only for accommodation sections) |
+| `sections[].activityInfo` | object | No | Activity data (only for activity sections) |
 
 ## Response
 
@@ -127,5 +136,5 @@ Returns the full updated plan (same schema as `GET /plans/{accessCode}`).
 
 - Only process fields that are present in the request body.
 - Validate section IDs belong to the specified plan before applying changes.
-- `flightInfo` and `accommodationInfo` follow the same schema as the existing `PUT /plans/{accessCode}/sections/{sectionId}` endpoint.
+- `flightInfo`, `accommodationInfo`, and `activityInfo` follow the same schema as the existing `PUT /plans/{accessCode}/sections/{sectionId}` endpoint.
 - The `displayOrder` of sections is NOT affected by this endpoint (use the existing reorder endpoint).
